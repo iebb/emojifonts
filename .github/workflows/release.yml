@@ -1,0 +1,34 @@
+name: release (monthly)
+
+on:
+  schedule:
+    - cron: "0 6 1 * *"        # 1st of each month, 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Collect the current fonts from 'latest'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p out
+          gh release download latest --dir out --pattern "*.ttf"
+          ls -la out
+      - name: Publish dated monthly release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="$(date +%Y.%m)"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" out/*.ttf --clobber
+          else
+            gh release create "$TAG" out/*.ttf \
+              --title "Emoji fonts $TAG" \
+              --notes "Monthly snapshot of all built emoji fonts (macOS-renderable: sbix / COLRv0)."
+          fi
