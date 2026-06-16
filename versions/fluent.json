@@ -3,22 +3,22 @@
   "fonts": {
     "fluent": {
       "emoji_version": "15.0",
-      "coverage_pct": 99,
+      "coverage_pct": 98,
       "updated": "2026-06-16"
     },
     "fluent-flat": {
       "emoji_version": "15.0",
-      "coverage_pct": 99,
+      "coverage_pct": 98,
       "updated": "2026-06-16"
     },
     "fluent-hc": {
       "emoji_version": "15.0",
-      "coverage_pct": 99,
+      "coverage_pct": 98,
       "updated": "2026-06-16"
     },
     "fluent-hc-inverted": {
       "emoji_version": "15.0",
-      "coverage_pct": 99,
+      "coverage_pct": 98,
       "updated": "2026-06-16"
     }
   }
