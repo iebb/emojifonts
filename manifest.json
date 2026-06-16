@@ -1,0 +1,158 @@
+{
+  "generated": "2026-06-16",
+  "repo": "iebb/emojifonts",
+  "release": "https://github.com/iebb/emojifonts/releases/latest",
+  "fonts": [
+    {
+      "key": "noto",
+      "label": "Google Noto Color Emoji",
+      "license": "Apache-2.0 / OFL-1.1",
+      "kind": "color",
+      "action": "noto",
+      "upstream": "https://github.com/googlefonts/noto-emoji",
+      "emoji_version": "16.0",
+      "coverage_pct": 100,
+      "updated": "2026-06-16",
+      "formats": {
+        "sbix": "https://github.com/iebb/emojifonts/releases/latest/download/noto.ttf"
+      }
+    },
+    {
+      "key": "noto-mono",
+      "label": "Noto Emoji (monochrome glyph)",
+      "license": "OFL-1.1",
+      "kind": "mono",
+      "action": "noto-mono",
+      "upstream": "https://github.com/google/fonts",
+      "emoji_version": "15.0",
+      "coverage_pct": 99,
+      "updated": "2026-06-16",
+      "formats": {
+        "glyf": "https://github.com/iebb/emojifonts/releases/latest/download/noto-mono.ttf"
+      }
+    },
+    {
+      "key": "blobmoji",
+      "label": "Blobmoji (Android blobs)",
+      "license": "OFL-1.1",
+      "kind": "color",
+      "action": "blobmoji",
+      "upstream": "https://github.com/C1710/blobmoji",
+      "emoji_version": "15.0",
+      "coverage_pct": 99,
+      "updated": "2026-06-16",
+      "formats": {
+        "sbix": "https://github.com/iebb/emojifonts/releases/latest/download/blobmoji.ttf"
+      }
+    },
+    {
+      "key": "fluent",
+      "label": "Microsoft Fluent 3D",
+      "license": "MIT",
+      "kind": "color",
+      "action": "fluent",
+      "upstream": "https://github.com/tetunori/fluent-emoji-webfont",
+      "emoji_version": "15.0",
+      "coverage_pct": 99,
+      "updated": "2026-06-16",
+      "formats": {
+        "sbix": "https://github.com/iebb/emojifonts/releases/latest/download/fluent.ttf"
+      }
+    },
+    {
+      "key": "fluent-flat",
+      "label": "Microsoft Fluent Flat",
+      "license": "MIT",
+      "kind": "color",
+      "action": "fluent",
+      "upstream": "https://github.com/tetunori/fluent-emoji-webfont",
+      "emoji_version": "15.0",
+      "coverage_pct": 99,
+      "updated": "2026-06-16",
+      "formats": {
+        "sbix": "https://github.com/iebb/emojifonts/releases/latest/download/fluent-flat.ttf"
+      }
+    },
+    {
+      "key": "fluent-hc",
+      "label": "Microsoft Fluent High Contrast",
+      "license": "MIT",
+      "kind": "color",
+      "action": "fluent",
+      "upstream": "https://github.com/tetunori/fluent-emoji-webfont",
+      "emoji_version": "15.0",
+      "coverage_pct": 99,
+      "updated": "2026-06-16",
+      "formats": {
+        "sbix": "https://github.com/iebb/emojifonts/releases/latest/download/fluent-hc.ttf"
+      }
+    },
+    {
+      "key": "fluent-hc-inverted",
+      "label": "Microsoft Fluent High Contrast Inverted",
+      "license": "MIT",
+      "kind": "color",
+      "action": "fluent",
+      "upstream": "https://github.com/tetunori/fluent-emoji-webfont",
+      "emoji_version": "15.0",
+      "coverage_pct": 99,
+      "updated": "2026-06-16",
+      "formats": {
+        "sbix": "https://github.com/iebb/emojifonts/releases/latest/download/fluent-hc-inverted.ttf"
+      }
+    },
+    {
+      "key": "twemoji",
+      "label": "Twemoji (jdecked)",
+      "license": "CC-BY-4.0",
+      "kind": "color",
+      "action": "twemoji",
+      "upstream": "https://github.com/jdecked/twemoji",
+      "emoji_version": null,
+      "coverage_pct": null,
+      "updated": null,
+      "formats": {}
+    },
+    {
+      "key": "openmoji",
+      "label": "OpenMoji",
+      "license": "CC-BY-SA-4.0",
+      "kind": "color",
+      "action": "openmoji",
+      "upstream": "https://github.com/hfg-gmuend/openmoji",
+      "emoji_version": "16.0",
+      "coverage_pct": 100,
+      "updated": "2026-06-16",
+      "formats": {
+        "sbix": "https://github.com/iebb/emojifonts/releases/latest/download/openmoji.ttf",
+        "colrv0": "https://github.com/iebb/emojifonts/releases/latest/download/openmoji-colrv0.ttf"
+      }
+    },
+    {
+      "key": "emojitwo",
+      "label": "EmojiTwo (open EmojiOne)",
+      "license": "CC-BY-4.0",
+      "kind": "color",
+      "action": "emojitwo",
+      "upstream": "https://github.com/EmojiTwo/EmojiTwo",
+      "emoji_version": null,
+      "coverage_pct": null,
+      "updated": null,
+      "formats": {}
+    },
+    {
+      "key": "tossface",
+      "label": "Toss Face",
+      "license": "free (Toss)",
+      "kind": "color",
+      "action": "tossface",
+      "upstream": "https://github.com/toss/tossface",
+      "emoji_version": "15.0",
+      "coverage_pct": 99,
+      "updated": "2026-06-16",
+      "formats": {
+        "sbix": "https://github.com/iebb/emojifonts/releases/latest/download/tossface.ttf"
+      }
+    }
+  ]
+}

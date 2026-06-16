@@ -1,12 +1,12 @@
-name: docs (VERSIONS.md)
+name: docs (VERSIONS.md + manifest.json)
 
-# Single writer of VERSIONS.md — regenerated from the per-set versions/*.json
-# (each carries its emoji version, computed at build time). Per-set builds
-# trigger this after they commit; concurrency serializes so there's no conflict.
+# Single writer of the generated docs — VERSIONS.md and manifest.json — rebuilt
+# from the per-action versions/*.json and the actual `latest` release assets.
+# Per-action builds trigger this after they commit; concurrency serializes it.
 on:
   workflow_dispatch:
   schedule:
-    - cron: "30 7 * * 1"   # Mondays, after the staggered per-set builds
+    - cron: "30 7 * * 1"   # Mondays, after the staggered per-action builds
 
 permissions:
   contents: write
@@ -23,13 +23,22 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python build.py render-versions
-      - name: Commit VERSIONS.md if changed
+      - name: Render VERSIONS.md + manifest.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python build.py render-docs
+
+      - name: Publish manifest.json to the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload latest manifest.json --clobber || true
+
+      - name: Commit docs if changed
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add VERSIONS.md
+          git add VERSIONS.md manifest.json
           if ! git diff --cached --quiet; then
-            git commit -m "docs: refresh VERSIONS.md"
+            git commit -m "docs: refresh VERSIONS.md + manifest.json"
             for i in 1 2 3 4 5; do git pull --rebase --autostash && git push && break || sleep 3; done
           fi

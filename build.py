@@ -36,6 +36,8 @@ VERSIONS_DIR = ROOT / "versions"
 ACTIONS = json.loads((ROOT / "sources.json").read_text())
 SKIN_TONES = {0x1F3FB, 0x1F3FC, 0x1F3FD, 0x1F3FE, 0x1F3FF}
 EMOJI_TEST_URL = "https://unicode.org/Public/emoji/16.0/emoji-test.txt"
+REPO = "iebb/emojifonts"
+RELEASE_BASE = f"https://github.com/{REPO}/releases/latest/download"
 
 
 # ---- upstream change detection (per action) ---------------------------------
@@ -319,13 +321,54 @@ def render_versions_md():
     (ROOT / "VERSIONS.md").write_text("\n".join(out) + "\n")
 
 
+def _release_assets():
+    """Files actually present in the `latest` release (CI) or local dist/ — so the
+    manifest reflects what really shipped, incl. best-effort COLRv0 that may be absent."""
+    try:
+        r = subprocess.run(["gh", "release", "view", "latest", "--json", "assets",
+                            "--jq", ".assets[].name"], capture_output=True, text=True, cwd=str(ROOT))
+        if r.returncode == 0 and r.stdout.strip():
+            return set(r.stdout.split())
+    except Exception:
+        pass
+    return {p.name for p in DIST.glob("*.ttf")} if DIST.exists() else set()
+
+def render_manifest():
+    assets = _release_assets()
+    fonts = []
+    for action, spec in ACTIONS.items():
+        p = VERSIONS_DIR / f"{action}.json"
+        info = json.loads(p.read_text()).get("fonts", {}) if p.exists() else {}
+        for fk, fspec in spec["fonts"].items():
+            d = info.get(fk, {})
+            primary = "glyf" if fspec.get("kind") == "mono" else "sbix"
+            formats = {}
+            if f"{fk}.ttf" in assets or not assets:
+                formats[primary] = f"{RELEASE_BASE}/{fk}.ttf"
+            if f"{fk}-colrv0.ttf" in assets:
+                formats["colrv0"] = f"{RELEASE_BASE}/{fk}-colrv0.ttf"
+            fonts.append({
+                "key": fk, "label": fspec["label"], "license": fspec.get("license"),
+                "kind": fspec.get("kind", "color"), "action": action, "upstream": spec["upstream"],
+                "emoji_version": d.get("emoji_version"), "coverage_pct": d.get("coverage_pct"),
+                "updated": d.get("updated"), "formats": formats,
+            })
+    manifest = {"generated": datetime.date.today().isoformat(), "repo": REPO,
+                "release": f"https://github.com/{REPO}/releases/latest", "fonts": fonts}
+    (ROOT / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+
+def render_docs():
+    render_versions_md()
+    render_manifest()
+
+
 def main(argv):
     if not argv:
         print(__doc__); return 2
     if argv[0] == "changed":
         print("\n".join(changed_actions(argv[1:] or None)))
-    elif argv[0] == "render-versions":
-        render_versions_md()
+    elif argv[0] in ("render-versions", "render-docs"):
+        render_docs()
     elif argv[0] in ("build", "build-all"):
         actions = list(ACTIONS) if argv[0] == "build-all" else argv[1:]
         ok, failed = [], []
@@ -335,7 +378,7 @@ def main(argv):
             except Exception as e:
                 print(f"::error::{a} failed: {e}")
                 failed.append(a)
-        render_versions_md()
+        render_docs()
         print("built:", " ".join(ok) or "(none)", "| failed:", " ".join(failed) or "(none)")
         return 1 if failed and not ok else 0
     else:

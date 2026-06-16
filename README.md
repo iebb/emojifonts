@@ -56,6 +56,18 @@ https://github.com/iebb/emojifonts/releases/latest/download/<font>.ttf
 https://github.com/iebb/emojifonts/releases/latest/download/<font>-colrv0.ttf
 ```
 
+**Programmatically:** [`manifest.json`](manifest.json) (also published to the release)
+lists every font with its label, license, upstream, detected Emoji version, and the
+download URL for each format it ships:
+
+```
+https://github.com/iebb/emojifonts/releases/latest/download/manifest.json
+```
+```json
+{ "key": "openmoji", "emoji_version": "16.0", "kind": "color",
+  "formats": { "sbix": ".../openmoji.ttf", "colrv0": ".../openmoji-colrv0.ttf" } }
+```
+
 ## Build locally
 
 ```bash

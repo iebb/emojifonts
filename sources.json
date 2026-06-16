@@ -16,6 +16,7 @@
       "noto-mono": {
         "label": "Noto Emoji (monochrome glyph)",
         "license": "OFL-1.1",
+        "kind": "mono",
         "download": "https://github.com/google/fonts/raw/main/ofl/notoemoji/NotoEmoji%5Bwght%5D.ttf"
       }
     }
