@@ -251,9 +251,18 @@ def build_colrv0(fontkey, svg, upstream, label):
 def build_font(fontkey, fspec, upstream):
     DIST.mkdir(parents=True, exist_ok=True)
     out = DIST / f"{fontkey}.ttf"
-    if "download" in fspec:                          # take a ready font as-is (mono, sbix)
+    if "download" in fspec:                          # take a ready font (mono, sbix)
         curl(fspec["download"], out)
-        print(f"  {fontkey}: downloaded ({out.stat().st_size // 1024} KB)")
+        if fspec.get("box_glyf"):                    # add box outlines so Chrome (Skia) renders it
+            from fontTools.ttLib import TTFont
+            try:
+                f = TTFont(str(out)); sbix_outline_boxes(f); f.save(str(out)); f.close()
+            except Exception as e:
+                print(f"::warning::{fontkey} box-glyf skipped: {e}")
+        print(f"  {fontkey}: downloaded → {out.name} ({out.stat().st_size // 1024} KB)")
+        if "colrv0_download" in fspec:               # upstream ships a ready COLRv0 too
+            cout = DIST / f"{fontkey}-colrv0.ttf"; curl(fspec["colrv0_download"], cout)
+            print(f"  {fontkey}: colrv0 downloaded → {cout.name} ({cout.stat().st_size // 1024} KB)")
         return
     if "cbdt" in fspec:                              # CBDT bitmaps → sbix
         WORK.mkdir(parents=True, exist_ok=True)

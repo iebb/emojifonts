@@ -18,7 +18,7 @@ more variant fonts:
 | `blobmoji` · [C1710/blobmoji](https://github.com/C1710/blobmoji) | `blobmoji` | OFL-1.1 | sbix |
 | `fluent` · [tetunori/fluent-emoji-webfont](https://github.com/tetunori/fluent-emoji-webfont)² | `fluent`, `fluent-flat`, `fluent-hc`, `fluent-hc-inverted` | MIT | sbix |
 | `twemoji` · [jdecked/twemoji](https://github.com/jdecked/twemoji) | `twemoji` | CC-BY-4.0 | sbix + COLRv0 |
-| `openmoji` · [hfg-gmuend/openmoji](https://github.com/hfg-gmuend/openmoji) | `openmoji` | CC-BY-SA-4.0 | sbix + COLRv0 |
+| `openmoji` · [hfg-gmuend/openmoji](https://github.com/hfg-gmuend/openmoji) | `openmoji` | CC-BY-SA-4.0 | sbix + COLRv0 (prebuilt) |
 | `emojitwo` · [EmojiTwo/EmojiTwo](https://github.com/EmojiTwo/EmojiTwo) | `emojitwo` | CC-BY-4.0 | sbix + COLRv0 |
 | `tossface` · [toss/tossface](https://github.com/toss/tossface) | `tossface` | free | as-is (sbix) |
 
@@ -27,9 +27,11 @@ sbix builds get box glyf outlines so they render in Chrome (Skia), not just Core
 ¹ COLRv0 makes one glyph per color *region*, so detailed sets (Noto, Blobmoji — many
 gradient layers each) blow past TrueType's 65 535-glyph cap, build slowly, *and* lose
 their gradients when flattened. Their proper macOS form is the bitmap, so they ship
-sbix only. COLRv0 is built for the flat sets (Twemoji/OpenMoji/EmojiTwo), where it's
-small, fast and lossless; if one ever overflows the cap the build drops the
-least-common emoji (skin-tone, then multi-person sequences) until it fits.
+sbix only. COLRv0 is built for the flat sets (Twemoji, EmojiTwo), where it's small,
+fast and lossless; if one ever overflows the cap the build drops the least-common
+emoji (skin-tone, then multi-person sequences) until it fits. OpenMoji ships its own
+prebuilt sbix + COLRv0 upstream, so we download those directly (the sbix gets box
+glyf outlines added for Chrome).
 ² Fluent's art is Microsoft's [fluentui-emoji](https://github.com/microsoft/fluentui-emoji)
 (MIT); we build from tetunori's webfont, which is the upstream this action tracks.
 

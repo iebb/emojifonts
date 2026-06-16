@@ -71,7 +71,9 @@
       "openmoji": {
         "label": "OpenMoji",
         "license": "CC-BY-SA-4.0",
-        "svg": {"branch": "master", "dir": "color/svg", "naming": "openmoji"}
+        "download": "https://github.com/hfg-gmuend/openmoji/raw/master/font/OpenMoji-color-sbix/OpenMoji-color-sbix.ttf",
+        "box_glyf": true,
+        "colrv0_download": "https://github.com/hfg-gmuend/openmoji/raw/master/font/OpenMoji-color-glyf_colr_0/OpenMoji-color-glyf_colr_0.ttf"
       }
     }
   },
