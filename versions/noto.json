@@ -2,8 +2,8 @@
   "ref": "8998f5dd683424a73e2314a8c1f1e359c19e8742",
   "fonts": {
     "noto": {
-      "emoji_version": "16.0",
-      "coverage_pct": 100,
+      "emoji_version": "17.0",
+      "coverage_pct": 99,
       "updated": "2026-06-16"
     }
   }
