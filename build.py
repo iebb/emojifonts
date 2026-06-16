@@ -35,7 +35,13 @@ DATA = ROOT / "data"
 VERSIONS_DIR = ROOT / "versions"
 ACTIONS = json.loads((ROOT / "sources.json").read_text())
 SKIN_TONES = {0x1F3FB, 0x1F3FC, 0x1F3FD, 0x1F3FE, 0x1F3FF}
-EMOJI_TEST_URL = "https://unicode.org/Public/emoji/16.0/emoji-test.txt"
+# emoji-test.txt is cumulative (all E-tags). Try the in-development draft first so we
+# pick up the newest versions (E17, E18, …); fall back to latest stable, then a floor.
+EMOJI_TEST_URLS = [
+    "https://www.unicode.org/Public/draft/emoji/emoji-test.txt",   # next version — E18 today
+    "https://unicode.org/Public/emoji/latest/emoji-test.txt",      # latest stable — E17 today
+    "https://unicode.org/Public/emoji/16.0/emoji-test.txt",        # pinned floor
+]
 REPO = "iebb/emojifonts"
 RELEASE_BASE = f"https://github.com/{REPO}/releases/latest/download"
 
@@ -73,9 +79,13 @@ def changed_actions(names=None):
 # ---- emoji-version detection ------------------------------------------------
 def ensure_emoji_test():
     p = DATA / "emoji-test.txt"
-    if not p.exists():
+    if not p.exists() or p.stat().st_size == 0:
         DATA.mkdir(parents=True, exist_ok=True)
-        subprocess.run(["curl", "-fsSL", "-o", str(p), EMOJI_TEST_URL], check=True)
+        for url in EMOJI_TEST_URLS:
+            subprocess.run(["curl", "-fsSL", "-o", str(p), url])
+            if p.exists() and p.stat().st_size > 0:
+                return p
+        raise RuntimeError("could not fetch emoji-test.txt from any known source")
     return p
 
 def emoji_version_index():
