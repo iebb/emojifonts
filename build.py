@@ -201,9 +201,9 @@ def build_sbix(name, spec):
         stage = stage_svgs(name, spec)
         ok, msg = run_nanoemoji(sorted(stage.glob("emoji_u*.svg")), "sbix", out, spec["label"])
         if not ok:
-            raise SystemExit(f"{name} sbix build failed:\n{msg[-600:]}")
+            raise RuntimeError(f"{name} sbix build failed:\n{msg[-600:]}")
     else:
-        raise SystemExit(f"{name}: no sbix source")
+        raise RuntimeError(f"{name}: no sbix source")
     print(f"  sbix → {out} ({out.stat().st_size // 1024} KB)")
 
 def build_colrv0(name, spec):
@@ -227,7 +227,7 @@ def build_colrv0(name, spec):
             print(f"  colrv0 → {out} ({out.stat().st_size // 1024} KB) [{label}]")
             return
         if not is_glyph_overflow(msg):
-            raise SystemExit(f"{name} colrv0 build failed:\n{msg[-600:]}")
+            raise RuntimeError(f"{name} colrv0 build failed:\n{msg[-600:]}")
     raise SystemExit(f"{name} colrv0 still exceeds the glyph cap after dropping skin tones")
 
 def build(name):
@@ -247,10 +247,18 @@ def main(argv):
     elif argv[0] in ("build", "build-all"):
         sets = list(SOURCES) if argv[0] == "build-all" else argv[1:]
         v = load_versions()
+        ok, failed = [], []
         for s in sets:
-            build(s); v[s] = upstream_ref(SOURCES[s])
+            try:
+                build(s)
+                v[s] = upstream_ref(SOURCES[s])   # only record refs for sets that built
+                ok.append(s)
+            except Exception as e:                # one bad set must not abort the rest
+                print(f"::error::{s} build failed: {e}")
+                failed.append(s)
         VERSIONS_FILE.write_text(json.dumps(v, indent=2, sort_keys=True) + "\n")
-        print("recorded refs for:", " ".join(sets))
+        print("built:", " ".join(ok) or "(none)", "| failed:", " ".join(failed) or "(none)")
+        return 1 if failed and not ok else 0      # succeed if at least one built
     else:
         print(__doc__); return 2
     return 0
