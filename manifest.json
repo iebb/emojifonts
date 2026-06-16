@@ -10,8 +10,8 @@
       "kind": "color",
       "action": "noto",
       "upstream": "https://github.com/googlefonts/noto-emoji",
-      "emoji_version": "16.0",
-      "coverage_pct": 100,
+      "emoji_version": "17.0",
+      "coverage_pct": 99,
       "updated": "2026-06-16",
       "formats": {
         "sbix": "https://github.com/iebb/emojifonts/releases/latest/download/noto.ttf"
@@ -25,7 +25,7 @@
       "action": "noto-mono",
       "upstream": "https://github.com/google/fonts",
       "emoji_version": "15.0",
-      "coverage_pct": 99,
+      "coverage_pct": 98,
       "updated": "2026-06-16",
       "formats": {
         "glyf": "https://github.com/iebb/emojifonts/releases/latest/download/noto-mono.ttf"
@@ -39,7 +39,7 @@
       "action": "blobmoji",
       "upstream": "https://github.com/C1710/blobmoji",
       "emoji_version": "15.0",
-      "coverage_pct": 99,
+      "coverage_pct": 98,
       "updated": "2026-06-16",
       "formats": {
         "sbix": "https://github.com/iebb/emojifonts/releases/latest/download/blobmoji.ttf"
@@ -53,7 +53,7 @@
       "action": "fluent",
       "upstream": "https://github.com/tetunori/fluent-emoji-webfont",
       "emoji_version": "15.0",
-      "coverage_pct": 99,
+      "coverage_pct": 98,
       "updated": "2026-06-16",
       "formats": {
         "sbix": "https://github.com/iebb/emojifonts/releases/latest/download/fluent.ttf"
@@ -67,7 +67,7 @@
       "action": "fluent",
       "upstream": "https://github.com/tetunori/fluent-emoji-webfont",
       "emoji_version": "15.0",
-      "coverage_pct": 99,
+      "coverage_pct": 98,
       "updated": "2026-06-16",
       "formats": {
         "sbix": "https://github.com/iebb/emojifonts/releases/latest/download/fluent-flat.ttf"
@@ -81,7 +81,7 @@
       "action": "fluent",
       "upstream": "https://github.com/tetunori/fluent-emoji-webfont",
       "emoji_version": "15.0",
-      "coverage_pct": 99,
+      "coverage_pct": 98,
       "updated": "2026-06-16",
       "formats": {
         "sbix": "https://github.com/iebb/emojifonts/releases/latest/download/fluent-hc.ttf"
@@ -95,7 +95,7 @@
       "action": "fluent",
       "upstream": "https://github.com/tetunori/fluent-emoji-webfont",
       "emoji_version": "15.0",
-      "coverage_pct": 99,
+      "coverage_pct": 98,
       "updated": "2026-06-16",
       "formats": {
         "sbix": "https://github.com/iebb/emojifonts/releases/latest/download/fluent-hc-inverted.ttf"
@@ -108,9 +108,9 @@
       "kind": "color",
       "action": "twemoji",
       "upstream": "https://github.com/jdecked/twemoji",
-      "emoji_version": null,
-      "coverage_pct": null,
-      "updated": null,
+      "emoji_version": "17.0",
+      "coverage_pct": 99,
+      "updated": "2026-06-16",
       "formats": {}
     },
     {
@@ -120,8 +120,8 @@
       "kind": "color",
       "action": "openmoji",
       "upstream": "https://github.com/hfg-gmuend/openmoji",
-      "emoji_version": "16.0",
-      "coverage_pct": 100,
+      "emoji_version": "17.0",
+      "coverage_pct": 99,
       "updated": "2026-06-16",
       "formats": {
         "sbix": "https://github.com/iebb/emojifonts/releases/latest/download/openmoji.ttf",
@@ -138,7 +138,9 @@
       "emoji_version": null,
       "coverage_pct": null,
       "updated": null,
-      "formats": {}
+      "formats": {
+        "sbix": "https://github.com/iebb/emojifonts/releases/latest/download/emojitwo.ttf"
+      }
     },
     {
       "key": "tossface",
@@ -148,7 +150,7 @@
       "action": "tossface",
       "upstream": "https://github.com/toss/tossface",
       "emoji_version": "15.0",
-      "coverage_pct": 99,
+      "coverage_pct": 98,
       "updated": "2026-06-16",
       "formats": {
         "sbix": "https://github.com/iebb/emojifonts/releases/latest/download/tossface.ttf"

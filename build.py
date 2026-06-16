@@ -122,10 +122,9 @@ def run_nanoemoji(svgs, color_format, out_path, family):
     build = out_path.parent / (out_path.stem + "-nb")
     shutil.rmtree(build, ignore_errors=True); build.mkdir(parents=True)
     env = dict(os.environ)
-    nb = shutil.which("nanoemoji")
-    if nb:
-        env["PATH"] = os.path.dirname(nb) + os.pathsep + env.get("PATH", "")
-    r = subprocess.run(["nanoemoji", "--color_format", color_format, "--reuse_tolerance", "0.3",
+    nb = _tool("nanoemoji")
+    env["PATH"] = os.path.dirname(nb) + os.pathsep + env.get("PATH", "")  # find picosvg/ninja/resvg
+    r = subprocess.run([nb, "--color_format", color_format, "--reuse_tolerance", "0.3",
                         "--family", family, "--output_file", "out.ttf"] + [str(s) for s in svgs],
                        cwd=str(build), env=env, capture_output=True, text=True)
     built = build / "build" / "out.ttf"
@@ -243,56 +242,206 @@ def _drop_skin_tones(stage, multi_person_only):
     return removed
 
 
-# ---- per-font build ---------------------------------------------------------
-def build_colrv0(fontkey, svg, upstream, label):
-    out = DIST / f"{fontkey}-colrv0.ttf"
-    stage = stage_svgs(fontkey, svg, upstream)
-    for attempt, note in enumerate(("full", "drop multi-person skin tones", "drop all skin tones")):
+# ---- shared SVG-set primitives (used by the svg_color builder) --------------
+SBIX_PPEM = 128   # bitmap is SBIX_PPEM px == 1 em (strike ppem is the em size)
+
+def _tool(name):
+    # pip console scripts (nanoemoji, resvg, picosvg, ninja) install next to the
+    # running Python — check there first so a non-activated venv still resolves them.
+    cand = os.path.join(os.path.dirname(sys.executable), name)
+    if os.path.exists(cand):
+        return cand
+    return shutil.which(name) or name
+
+def rasterize_svgs(stage, ppem):
+    """resvg each emoji_u*.svg → a ppem×ppem PNG. Returns {stem: png-bytes}.
+    resvg is ~instant per SVG, so this replaces nanoemoji's ~0.4s/SVG raster pass."""
+    resvg = _tool("resvg")
+    out = stage.parent / (stage.name + "-png")
+    shutil.rmtree(out, ignore_errors=True); out.mkdir(parents=True)
+    pngs = {}
+    for svg in stage.glob("emoji_u*.svg"):
+        png = out / (svg.stem + ".png")
+        subprocess.run([resvg, "-w", str(ppem), "-h", str(ppem), str(svg), str(png)],
+                       capture_output=True)
+        if png.exists():
+            pngs[svg.stem] = png.read_bytes()
+    return pngs
+
+def picosvg_prefilter(stage):
+    """Drop SVGs picosvg/nanoemoji can't convert (malformed transforms, <text>, …)
+    so the COLRv0 build doesn't abort on one bad file."""
+    from picosvg.svg import SVG
+    dropped = 0
+    for p in list(stage.glob("emoji_u*.svg")):
+        try:
+            SVG.parse(str(p)).topicosvg()
+        except Exception:
+            p.unlink(); dropped += 1
+    if dropped:
+        print(f"    pre-filtered {dropped} SVGs picosvg can't convert")
+
+def glyph_resolver(font):
+    """cps-list → glyph name, via cmap (singles) + GSUB type-4 ligatures (sequences)."""
+    cmap = font.getBestCmap()
+    ligs = {}
+    if "GSUB" in font:
+        for lk in font["GSUB"].table.LookupList.Lookup:
+            for st in getattr(lk, "SubTable", []):
+                for first, ligset in getattr(st, "ligatures", {}).items():
+                    for lig in ligset:
+                        ligs[(first, tuple(lig.Component))] = lig.LigGlyph
+    def resolve(cps):
+        gs = [cmap.get(c) for c in cps]
+        if any(g is None for g in gs):
+            return None
+        return gs[0] if len(gs) == 1 else ligs.get((gs[0], tuple(gs[1:])))
+    return resolve
+
+def normalize_metrics(font):
+    """nanoemoji emits emoji at ~1.245 em (advance 1275 / UPM 1024) — oversized and
+    over-spaced. Rescale art to 1 em (sbix: ×ppem; glyf/COLR: ×UPM), set every advance
+    to 1 em, and flatten vertical metrics so a line with an emoji isn't inflated."""
+    from collections import Counter
+    hmtx, order = font["hmtx"], font.getGlyphOrder()
+    upm0 = font["head"].unitsPerEm
+    adv = Counter(hmtx[g][0] for g in order if hmtx[g][0] > 0).most_common(1)[0][0]
+    art_em = max(0.5, min(2.0, adv / upm0))
+    if "sbix" in font:
+        for st in font["sbix"].strikes.values():
+            st.ppem = max(1, round(st.ppem * art_em))
+        upm = upm0
+        sbix_outline_boxes(font)
+    else:
+        upm = max(16, round(upm0 * art_em))
+        font["head"].unitsPerEm = upm
+    for g in order:
+        hmtx[g] = (upm, 0)
+    font["hhea"].ascent, font["hhea"].descent, font["hhea"].lineGap = upm, 0, 0
+    if "OS/2" in font:
+        o = font["OS/2"]
+        o.sTypoAscender, o.sTypoDescender, o.sTypoLineGap = upm, 0, 0
+        o.usWinAscent, o.usWinDescent = upm, 0
+
+def nanoemoji_colrv0(stage, out, label):
+    """COLRv0 via nanoemoji; if it overflows the 65 535-glyph cap, drop the least-common
+    emoji (multi-person skin-tone sequences first, then all skin tones) until it fits."""
+    for attempt in range(3):
         if attempt == 1:
             print(f"    COLRv0 over cap → dropped {_drop_skin_tones(stage, True)} multi-person skin-tone variants")
         elif attempt == 2:
             print(f"    still over → dropped {_drop_skin_tones(stage, False)} more skin-tone variants")
         ok, msg = run_nanoemoji(sorted(stage.glob("emoji_u*.svg")), "glyf_colr_0", out, label)
         if ok:
-            print(f"    colrv0 → {out.name} ({out.stat().st_size // 1024} KB) [{note}]")
             return
         if not is_glyph_overflow(msg):
-            raise RuntimeError(f"{fontkey} colrv0 failed:\n{msg[-500:]}")
-    raise RuntimeError(f"{fontkey} colrv0 still over the glyph cap after dropping skin tones")
+            raise RuntimeError(f"colrv0 failed:\n{msg[-500:]}")
+    raise RuntimeError("colrv0 still over the glyph cap after dropping skin tones")
+
+
+# ---- per-font builders ------------------------------------------------------
+def build_cbdt_sbix(fontkey, fspec, upstream):
+    """CBDT bitmap fonts → sbix (Noto, Blobmoji, Fluent variants)."""
+    WORK.mkdir(parents=True, exist_ok=True)
+    out = DIST / f"{fontkey}.ttf"
+    cbdt = WORK / f"{fontkey}-cbdt.ttf"; curl(fspec["cbdt"], cbdt)
+    cbdt_to_sbix(cbdt, out)
+    print(f"  {fontkey}: sbix → {out.name} ({out.stat().st_size // 1024} KB)")
+
+def build_download(fontkey, fspec, upstream):
+    """Ready-made fonts taken as-is (Toss Face sbix, mono Noto glyf, OpenMoji prebuilt).
+    Optionally add Chrome box-glyf and fetch a prebuilt COLRv0 alongside."""
+    from fontTools.ttLib import TTFont
+    out = DIST / f"{fontkey}.ttf"
+    curl(fspec["download"], out)
+    if fspec.get("box_glyf"):
+        try:
+            f = TTFont(str(out)); sbix_outline_boxes(f); f.save(str(out)); f.close()
+        except Exception as e:
+            print(f"::warning::{fontkey} box-glyf skipped: {e}")
+    print(f"  {fontkey}: downloaded → {out.name} ({out.stat().st_size // 1024} KB)")
+    if "colrv0_download" in fspec:
+        cout = DIST / f"{fontkey}-colrv0.ttf"; curl(fspec["colrv0_download"], cout)
+        print(f"  {fontkey}: colrv0 downloaded → {cout.name} ({cout.stat().st_size // 1024} KB)")
+
+def build_svg_color(fontkey, fspec, upstream):
+    """Flat SVG sets (Twemoji, EmojiTwo). COLRv0 via nanoemoji (normalized to 1 em);
+    sbix by rasterizing the SVGs with resvg (≈instant) and assembling over the COLRv0's
+    cmap+GSUB — so the bitmap is correct by construction (1-em art, 1-em advance,
+    full-cell box-glyf) and ~10× faster than nanoemoji's bitmap pass."""
+    from fontTools.ttLib import TTFont, newTable
+    from fontTools.ttLib.tables.sbixStrike import Strike
+    from fontTools.ttLib.tables.sbixGlyph import Glyph as SbixGlyph
+
+    svg, label = fspec["svg"], fspec["label"]
+    stage = stage_svgs(fontkey, svg, upstream)
+    pngs = rasterize_svgs(stage, SBIX_PPEM)
+    print(f"  {fontkey}: rasterized {len(pngs)} SVGs @ {SBIX_PPEM}px (resvg)")
+
+    # COLRv0 (vector) + the cmap/GSUB structure the sbix is assembled over
+    colr_out = DIST / f"{fontkey}-colrv0.ttf"
+    struct = None
+    try:
+        cstage = WORK / f"{fontkey}-colr"
+        shutil.rmtree(cstage, ignore_errors=True); shutil.copytree(stage, cstage)
+        picosvg_prefilter(cstage)
+        nanoemoji_colrv0(cstage, colr_out, label)
+        cf = TTFont(str(colr_out)); normalize_metrics(cf); cf.save(str(colr_out)); cf.close()
+        struct = colr_out
+        print(f"  {fontkey}: colrv0 → {colr_out.name} ({colr_out.stat().st_size // 1024} KB)")
+    except Exception as e:
+        print(f"::warning::{fontkey} COLRv0 skipped: {e}")
+
+    out = DIST / f"{fontkey}.ttf"
+    if struct is None:
+        # rare: COLRv0 unbuildable → fall back to nanoemoji's (slow) sbix + normalize
+        ok, msg = run_nanoemoji(sorted(stage.glob("emoji_u*.svg")), "sbix", out, label)
+        if not ok:
+            raise RuntimeError(f"{fontkey} sbix failed:\n{msg[-500:]}")
+        f = TTFont(str(out)); normalize_metrics(f); f.save(str(out)); f.close()
+        print(f"  {fontkey}: sbix (nanoemoji fallback) → {out.name} ({out.stat().st_size // 1024} KB)")
+        return
+
+    f = TTFont(str(struct))
+    for t in ("COLR", "CPAL", "SVG "):
+        if t in f:
+            del f[t]
+    upm = f["head"].unitsPerEm
+    resolve = glyph_resolver(f)
+    by_glyph = {}
+    for stem, data in pngs.items():
+        cps = [int(x, 16) for x in stem[len("emoji_u"):].split("_")]
+        g = resolve(cps)
+        if g:
+            by_glyph[g] = data
+    sbix = newTable("sbix"); sbix.version = 1; sbix.flags = 1; sbix.numStrikes = 1; sbix.strikes = {}
+    strike = Strike(ppem=SBIX_PPEM, resolution=72)
+    for g in f.getGlyphOrder():
+        strike.glyphs[g] = (SbixGlyph(glyphName=g, graphicType="png ", imageData=by_glyph[g],
+                                      originOffsetX=0, originOffsetY=0)
+                            if g in by_glyph else SbixGlyph(glyphName=g))
+    sbix.strikes[SBIX_PPEM] = strike
+    f["sbix"] = sbix
+    hmtx = f["hmtx"]
+    for g in f.getGlyphOrder():
+        hmtx[g] = (upm, 0)              # uniform 1-em advance
+    sbix_outline_boxes(f)              # full-cell box-glyf so Chrome (Skia) renders it
+    f.save(str(out)); f.close()
+    print(f"  {fontkey}: sbix → {out.name} ({out.stat().st_size // 1024} KB, {len(by_glyph)} emoji)")
+
+
+BUILDERS = {
+    "cbdt_sbix": build_cbdt_sbix,
+    "download": build_download,
+    "svg_color": build_svg_color,
+}
 
 def build_font(fontkey, fspec, upstream):
     DIST.mkdir(parents=True, exist_ok=True)
-    out = DIST / f"{fontkey}.ttf"
-    if "download" in fspec:                          # take a ready font (mono, sbix)
-        curl(fspec["download"], out)
-        if fspec.get("box_glyf"):                    # add box outlines so Chrome (Skia) renders it
-            from fontTools.ttLib import TTFont
-            try:
-                f = TTFont(str(out)); sbix_outline_boxes(f); f.save(str(out)); f.close()
-            except Exception as e:
-                print(f"::warning::{fontkey} box-glyf skipped: {e}")
-        print(f"  {fontkey}: downloaded → {out.name} ({out.stat().st_size // 1024} KB)")
-        if "colrv0_download" in fspec:               # upstream ships a ready COLRv0 too
-            cout = DIST / f"{fontkey}-colrv0.ttf"; curl(fspec["colrv0_download"], cout)
-            print(f"  {fontkey}: colrv0 downloaded → {cout.name} ({cout.stat().st_size // 1024} KB)")
-        return
-    if "cbdt" in fspec:                              # CBDT bitmaps → sbix
-        WORK.mkdir(parents=True, exist_ok=True)
-        cbdt = WORK / f"{fontkey}-cbdt.ttf"; curl(fspec["cbdt"], cbdt)
-        cbdt_to_sbix(cbdt, out)
-    elif "svg" in fspec:                             # SVGs → sbix (via nanoemoji)
-        stage = stage_svgs(fontkey, fspec["svg"], upstream)
-        ok, msg = run_nanoemoji(sorted(stage.glob("emoji_u*.svg")), "sbix", out, fspec["label"])
-        if not ok:
-            raise RuntimeError(f"{fontkey} sbix failed:\n{msg[-500:]}")
-    else:
-        raise RuntimeError(f"{fontkey}: no build source")
-    print(f"  {fontkey}: sbix → {out.name} ({out.stat().st_size // 1024} KB)")
-    if "svg" in fspec:                               # vector COLRv0 additionally (best-effort)
-        try:
-            build_colrv0(fontkey, fspec["svg"], upstream, fspec["label"])
-        except Exception as e:
-            print(f"::warning::{fontkey} COLRv0 skipped (sbix still shipped): {e}")
+    builder = BUILDERS.get(fspec.get("builder"))
+    if not builder:
+        raise RuntimeError(f"{fontkey}: unknown builder {fspec.get('builder')!r}")
+    builder(fontkey, fspec, upstream)
 
 
 def build_action(action):

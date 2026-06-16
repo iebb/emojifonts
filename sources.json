@@ -3,6 +3,7 @@
     "upstream": "https://github.com/googlefonts/noto-emoji",
     "fonts": {
       "noto": {
+        "builder": "cbdt_sbix",
         "label": "Google Noto Color Emoji",
         "license": "Apache-2.0 / OFL-1.1",
         "cbdt": "https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf"
@@ -14,6 +15,7 @@
     "ref_path": "ofl/notoemoji/NotoEmoji[wght].ttf",
     "fonts": {
       "noto-mono": {
+        "builder": "download",
         "label": "Noto Emoji (monochrome glyph)",
         "license": "OFL-1.1",
         "kind": "mono",
@@ -25,6 +27,7 @@
     "upstream": "https://github.com/C1710/blobmoji",
     "fonts": {
       "blobmoji": {
+        "builder": "cbdt_sbix",
         "label": "Blobmoji (Android blobs)",
         "license": "OFL-1.1",
         "cbdt": "https://github.com/C1710/blobmoji/raw/main/fonts/Blobmoji.ttf"
@@ -35,21 +38,25 @@
     "upstream": "https://github.com/tetunori/fluent-emoji-webfont",
     "fonts": {
       "fluent": {
+        "builder": "cbdt_sbix",
         "label": "Microsoft Fluent 3D",
         "license": "MIT",
         "cbdt": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiColor.ttf"
       },
       "fluent-flat": {
+        "builder": "cbdt_sbix",
         "label": "Microsoft Fluent Flat",
         "license": "MIT",
         "cbdt": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiFlat.ttf"
       },
       "fluent-hc": {
+        "builder": "cbdt_sbix",
         "label": "Microsoft Fluent High Contrast",
         "license": "MIT",
         "cbdt": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiHighContrast.ttf"
       },
       "fluent-hc-inverted": {
+        "builder": "cbdt_sbix",
         "label": "Microsoft Fluent High Contrast Inverted",
         "license": "MIT",
         "cbdt": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiHighContrastInverted.ttf"
@@ -60,6 +67,7 @@
     "upstream": "https://github.com/jdecked/twemoji",
     "fonts": {
       "twemoji": {
+        "builder": "svg_color",
         "label": "Twemoji (jdecked)",
         "license": "CC-BY-4.0",
         "svg": {"branch": "main", "dir": "assets/svg", "naming": "twemoji"}
@@ -70,6 +78,7 @@
     "upstream": "https://github.com/hfg-gmuend/openmoji",
     "fonts": {
       "openmoji": {
+        "builder": "download",
         "label": "OpenMoji",
         "license": "CC-BY-SA-4.0",
         "download": "https://github.com/hfg-gmuend/openmoji/raw/master/font/OpenMoji-color-sbix/OpenMoji-color-sbix.ttf",
@@ -82,6 +91,7 @@
     "upstream": "https://github.com/EmojiTwo/EmojiTwo",
     "fonts": {
       "emojitwo": {
+        "builder": "svg_color",
         "label": "EmojiTwo (open EmojiOne)",
         "license": "CC-BY-4.0",
         "svg": {"branch": "master", "dir": "svg", "naming": "twemoji"}
@@ -92,6 +102,7 @@
     "upstream": "https://github.com/toss/tossface",
     "fonts": {
       "tossface": {
+        "builder": "download",
         "label": "Toss Face",
         "license": "free (Toss)",
         "download": "https://github.com/toss/tossface/raw/main/dist/TossFaceFontMac.ttf"

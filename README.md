@@ -29,9 +29,12 @@ gradient layers each) blow past TrueType's 65 535-glyph cap, build slowly, *and*
 their gradients when flattened. Their proper macOS form is the bitmap, so they ship
 sbix only. COLRv0 is built for the flat sets (Twemoji, EmojiTwo), where it's small,
 fast and lossless; if one ever overflows the cap the build drops the least-common
-emoji (skin-tone, then multi-person sequences) until it fits. OpenMoji ships its own
-prebuilt sbix + COLRv0 upstream, so we download those directly (the sbix gets box
-glyf outlines added for Chrome).
+emoji (multi-person skin-tone sequences first, then all skin tones) until it fits.
+Their **sbix** is rasterized straight from the SVGs with resvg and assembled over the
+COLRv0's cmap+GSUB — ~10× faster than nanoemoji's bitmap pass and normalized to a
+clean 1-em advance (nanoemoji emits ~1.245 em, which renders oversized). OpenMoji
+ships its own prebuilt sbix + COLRv0 upstream, so we download those directly (the
+sbix gets box glyf outlines added for Chrome).
 ² Fluent's art is Microsoft's [fluentui-emoji](https://github.com/microsoft/fluentui-emoji)
 (MIT); we build from tetunori's webfont, which is the upstream this action tracks.
 
@@ -77,4 +80,13 @@ python build.py changed       # which upstreams changed
 python build.py build-all
 ```
 
-Sources are in [`sources.json`](sources.json); build logic in [`build.py`](build.py).
+Each font names a **builder** in [`sources.json`](sources.json), so its pipeline is
+explicit and tuned to its source:
+
+| Builder | Used by | What it does |
+|---------|---------|--------------|
+| `cbdt_sbix` | Noto, Blobmoji, Fluent ×4 | lift the CBDT bitmaps into an sbix strike + box glyf |
+| `download` | Toss Face, mono Noto, OpenMoji | take the upstream font as-is (+ optional box glyf / prebuilt COLRv0) |
+| `svg_color` | Twemoji, EmojiTwo | COLRv0 via nanoemoji (normalized); sbix via resvg over its cmap+GSUB |
+
+Build logic is in [`build.py`](build.py) (`BUILDERS` registry).
