@@ -582,8 +582,14 @@ def stage_mono_svgs(fontkey, upstream):
               or list((md.parent / "Default" / "High Contrast").glob("*.svg")))  # skin-capable → Default/
         if not hc:
             continue
-        shutil.copy(hc[0], stage / ("emoji_u" + "_".join(u.split()) + ".svg")); n += 1
-    print(f"    staged {n} High-Contrast SVGs")
+        cps = u.split()
+        shutil.copy(hc[0], stage / ("emoji_u" + "_".join(cps) + ".svg")); n += 1
+        # also stage the unqualified (no-FE0F) form so the bare codepoint renders too —
+        # MS maps e.g. the heart as "2764 fe0f", which would leave plain ❤ (U+2764) blank.
+        unq = [c for c in cps if c.lower() != "fe0f"]
+        if unq and unq != cps:
+            shutil.copy(hc[0], stage / ("emoji_u" + "_".join(unq) + ".svg"))
+    print(f"    staged {n} High-Contrast SVGs (+ unqualified variants)")
     return stage
 
 def build_svg_mono(fontkey, fspec, upstream):

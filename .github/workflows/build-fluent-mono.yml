@@ -1,4 +1,4 @@
-name: fluent-hc
+name: fluent-mono
 
 on:
   schedule:
@@ -17,6 +17,6 @@ jobs:
   build:
     uses: ./.github/workflows/_build.yml
     with:
-      action: fluent-hc
+      action: fluent-mono
       force: ${{ github.event.inputs.force == 'true' }}
     secrets: inherit
