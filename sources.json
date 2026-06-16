@@ -2,58 +2,46 @@
   "noto": {
     "label": "Google Noto Color Emoji",
     "license": "Apache-2.0 / OFL-1.1",
-    "method": "cbdt2sbix",
-    "url": "https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf",
-    "ref_repo": "https://github.com/googlefonts/noto-emoji",
-    "ref_branch": "main"
+    "upstream": "https://github.com/googlefonts/noto-emoji",
+    "cbdt": "https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf",
+    "svg": {"branch": "main", "dir": "svg", "naming": "noto"}
   },
   "blobmoji": {
     "label": "Blobmoji (Android blobs)",
     "license": "OFL-1.1",
-    "method": "cbdt2sbix",
-    "url": "https://github.com/C1710/blobmoji/raw/main/fonts/Blobmoji.ttf",
-    "ref_repo": "https://github.com/C1710/blobmoji",
-    "ref_branch": "main"
+    "upstream": "https://github.com/C1710/blobmoji",
+    "cbdt": "https://github.com/C1710/blobmoji/raw/main/fonts/Blobmoji.ttf",
+    "svg": {"branch": "main", "dir": "svg", "naming": "noto"}
   },
   "fluent": {
     "label": "Microsoft Fluent 3D",
     "license": "MIT",
-    "method": "cbdt2sbix",
-    "url": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiColor.ttf",
-    "ref_repo": "https://github.com/tetunori/fluent-emoji-webfont",
-    "ref_branch": "main"
+    "upstream": "https://github.com/microsoft/fluentui-emoji",
+    "cbdt": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiColor.ttf"
   },
   "twemoji": {
     "label": "Twemoji (jdecked)",
     "license": "CC-BY-4.0",
-    "method": "colrv0",
-    "repo": "https://github.com/jdecked/twemoji",
-    "branch": "main",
-    "svg_dir": "assets/svg",
-    "svg_name": "hyphen"
+    "upstream": "https://github.com/jdecked/twemoji",
+    "svg": {"branch": "main", "dir": "assets/svg", "naming": "twemoji"}
   },
   "openmoji": {
     "label": "OpenMoji",
     "license": "CC-BY-SA-4.0",
-    "method": "download",
-    "url": "https://github.com/Emoji-COLRv0/Emoji-COLRv0/raw/main/fonts/OpenMojiCOLRv0.ttf",
-    "ref_repo": "https://github.com/Emoji-COLRv0/Emoji-COLRv0",
-    "ref_branch": "main"
+    "upstream": "https://github.com/hfg-gmuend/openmoji",
+    "svg": {"branch": "master", "dir": "color/svg", "naming": "openmoji"}
   },
   "emojitwo": {
     "label": "EmojiTwo (open EmojiOne)",
     "license": "CC-BY-4.0",
-    "method": "download",
-    "url": "https://github.com/Emoji-COLRv0/Emoji-COLRv0/raw/main/fonts/EmojiTwoCOLRv0.ttf",
-    "ref_repo": "https://github.com/Emoji-COLRv0/Emoji-COLRv0",
-    "ref_branch": "main"
+    "upstream": "https://github.com/EmojiTwo/EmojiTwo",
+    "svg": {"branch": "master", "dir": "svg", "naming": "twemoji"},
+    "colrv0": "https://github.com/Emoji-COLRv0/Emoji-COLRv0/raw/main/fonts/EmojiTwoCOLRv0.ttf"
   },
   "tossface": {
     "label": "Toss Face",
     "license": "free (Toss)",
-    "method": "download",
-    "url": "https://github.com/toss/tossface/raw/main/dist/TossFaceFontMac.ttf",
-    "ref_repo": "https://github.com/toss/tossface",
-    "ref_branch": "main"
+    "upstream": "https://github.com/toss/tossface",
+    "sbix": "https://github.com/toss/tossface/raw/main/dist/TossFaceFontMac.ttf"
   }
 }

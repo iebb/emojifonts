@@ -1,22 +1,27 @@
 #!/usr/bin/env python3
 """Build macOS-renderable color emoji fonts from upstream sources.
 
-macOS Core Text renders sbix, COLRv0 and OT-SVG — not COLRv1 or CBDT. So each
-set is built to the best macOS-renderable form:
-  • cbdt2sbix : download the CBDT (Android-bitmap) build and transcode its PNGs
-                into Apple's sbix table (Noto, Blobmoji, Fluent).
-  • colrv0    : build a COLRv0 vector font from per-codepoint SVGs via nanoemoji
-                (Twemoji — flat art stays under the 65 535-glyph cap).
-  • download  : fetch an already macOS-renderable build as-is (OpenMoji/EmojiTwo
-                COLRv0, Toss Face sbix).
+macOS Core Text renders sbix, COLRv0 and OT-SVG — not COLRv1 or CBDT.
+
+Every set is built as **sbix** (bitmap; works everywhere incl. Chrome, full
+coverage). Vector-capable sets (those with SVG sources) ALSO get a **COLRv0**
+build (crisp at any size) as `<set>-colrv0.ttf`. COLRv0 stores one glyph per
+color region, so detailed sets can exceed TrueType's 65 535-glyph cap; when that
+happens the build drops the least-common emoji (skin-tone variants, esp.
+multi-person sequences) until it fits.
+
+Outputs (dist/):
+  <set>.ttf          sbix  (always)
+  <set>-colrv0.ttf   COLRv0 (vector sets)
 
 Usage:
-  build.py changed              # print sets whose upstream changed (vs versions.json)
-  build.py build <set> ...      # build sets → dist/<set>.ttf and record their refs
-  build.py build-all            # build every set
+  build.py changed             # sets whose upstream changed (vs versions.json)
+  build.py build <set> ...     # build sets → dist/, record refs
+  build.py build-all
 """
 import json
 import os
+import re
 import shutil
 import struct
 import subprocess
@@ -28,14 +33,12 @@ DIST = ROOT / "dist"
 WORK = ROOT / "work"
 SOURCES = json.loads((ROOT / "sources.json").read_text())
 VERSIONS_FILE = ROOT / "versions.json"
+SKIN_TONES = {0x1F3FB, 0x1F3FC, 0x1F3FD, 0x1F3FE, 0x1F3FF}
 
 
-# ---- upstream change detection ----------------------------------------------
+# ---- change detection -------------------------------------------------------
 def upstream_ref(spec):
-    """Current upstream commit SHA (cheap, no clone) for change detection."""
-    repo = spec.get("ref_repo") or spec.get("repo")
-    branch = spec.get("ref_branch") or spec.get("branch") or "HEAD"
-    r = subprocess.run(["git", "ls-remote", repo, branch], capture_output=True, text=True)
+    r = subprocess.run(["git", "ls-remote", spec["upstream"], "HEAD"], capture_output=True, text=True)
     toks = r.stdout.split()
     return toks[0] if toks else "?"
 
@@ -44,22 +47,44 @@ def load_versions():
 
 def changed_sets():
     v = load_versions()
-    return [name for name, spec in SOURCES.items() if upstream_ref(spec) != v.get(name)]
+    return [n for n, s in SOURCES.items() if upstream_ref(s) != v.get(n)]
 
 
 # ---- helpers ----------------------------------------------------------------
 def curl(url, dest):
     subprocess.run(["curl", "-fsSL", "--retry", "3", "-o", str(dest), url], check=True)
 
+def nanoemoji_bin():
+    return shutil.which("nanoemoji")
+
+def run_nanoemoji(svgs, color_format, out_path, family):
+    """Returns (ok, message). Adds nanoemoji's dir to PATH so picosvg resolves."""
+    build = out_path.parent / (out_path.stem + "-nb")
+    shutil.rmtree(build, ignore_errors=True); build.mkdir(parents=True)
+    env = dict(os.environ)
+    nb = nanoemoji_bin()
+    if nb:
+        env["PATH"] = os.path.dirname(nb) + os.pathsep + env.get("PATH", "")
+    r = subprocess.run(["nanoemoji", "--color_format", color_format, "--reuse_tolerance", "0.3",
+                        "--family", family, "--output_file", "out.ttf"] + [str(s) for s in svgs],
+                       cwd=str(build), env=env, capture_output=True, text=True)
+    built = build / "build" / "out.ttf"
+    if r.returncode == 0 and built.exists():
+        shutil.copy(built, out_path)
+        return True, ""
+    return False, (r.stderr or "") + (r.stdout or "")
+
+def is_glyph_overflow(msg):
+    return "writeUShort" in msg or "0x10000" in msg or re.search(r"6553[6-9]|655[4-9]\d|6[6-9]\d\d\d", msg)
+
+
+# ---- sbix transcode from CBDT ----------------------------------------------
 def sbix_outline_boxes(font):
-    """Give each sbix bitmap glyph a glyf box matching the bitmap's extent — Core
-    Text draws the bitmap regardless, but Skia/HarfBuzz (Chrome) skips empty
-    outlines and clips to the box, so emoji are invisible/cropped without this."""
+    """Box glyf outline per sbix bitmap so Chrome/Skia renders (and doesn't clip) it."""
     from fontTools.pens.ttGlyphPen import TTGlyphPen
     if "sbix" not in font or "glyf" not in font:
         return
-    glyf = font["glyf"]
-    upm = font["head"].unitsPerEm
+    glyf, upm = font["glyf"], font["head"].unitsPerEm
     for st in font["sbix"].strikes.values():
         scale = upm / max(1, st.ppem)
         for gname, sg in st.glyphs.items():
@@ -68,61 +93,40 @@ def sbix_outline_boxes(font):
                 continue
             bw, bh = struct.unpack(">II", data[16:24])
             ox, oy = int(sg.originOffsetX or 0) * scale, int(sg.originOffsetY or 0) * scale
-            x0, y0 = round(ox), round(oy)
-            x1, y1 = round(ox + bw * scale), round(oy + bh * scale)
+            x0, y0, x1, y1 = round(ox), round(oy), round(ox + bw * scale), round(oy + bh * scale)
             pen = TTGlyphPen(None)
-            pen.moveTo((x0, y0)); pen.lineTo((x0, y1))
-            pen.lineTo((x1, y1)); pen.lineTo((x1, y0)); pen.closePath()
+            pen.moveTo((x0, y0)); pen.lineTo((x0, y1)); pen.lineTo((x1, y1)); pen.lineTo((x1, y0)); pen.closePath()
             glyf[gname] = pen.glyph()
 
-
-# ---- build methods ----------------------------------------------------------
-def build_download(name, spec):
-    DIST.mkdir(parents=True, exist_ok=True)
-    curl(spec["url"], DIST / f"{name}.ttf")
-
-def build_cbdt2sbix(name, spec):
-    """Download a CBDT/CBLC bitmap font and transcode it into Apple's sbix."""
+def cbdt_to_sbix(src, out):
     from fontTools.ttLib import TTFont, newTable
     from fontTools.ttLib.tables._g_l_y_f import Glyph as GlyfGlyph
     from fontTools.ttLib.tables.sbixStrike import Strike
     from fontTools.ttLib.tables.sbixGlyph import Glyph as SbixGlyph
 
-    WORK.mkdir(parents=True, exist_ok=True)
-    DIST.mkdir(parents=True, exist_ok=True)
-    cbdt = WORK / f"{name}-cbdt.ttf"
-    curl(spec["url"], cbdt)
-
-    f = TTFont(str(cbdt), lazy=True)
+    f = TTFont(str(src), lazy=True)
     ppem = f["CBLC"].strikes[0].bitmapSizeTable.ppemX
     bitmaps = {}
     for sd in f["CBDT"].strikeData:
         for gname, gd in sd.items():
             png = getattr(gd, "imageData", None)
-            if not png:
-                continue
-            m = gd.metrics
-            off_x = int(getattr(m, "BearingX", 0))
-            bitmaps[gname] = (png, off_x, 0)   # baseline-aligned (offY=0), like Apple
-
+            if png:
+                bitmaps[gname] = (png, int(getattr(gd.metrics, "BearingX", 0)), 0)
     order = f.getGlyphOrder()
     glyf = newTable("glyf"); glyf.glyphOrder = order; glyf.glyphs = {}
     for gname in order:
-        g = GlyfGlyph(); g.numberOfContours = 0
-        glyf.glyphs[gname] = g
+        g = GlyfGlyph(); g.numberOfContours = 0; glyf.glyphs[gname] = g
     f["glyf"] = glyf
     if "loca" not in f:
         f["loca"] = newTable("loca")
     f["maxp"].tableVersion = 0x00010000
-
-    sbix = newTable("sbix"); sbix.version = 1; sbix.flags = 1
-    sbix.numStrikes = 1; sbix.strikes = {}
+    sbix = newTable("sbix"); sbix.version = 1; sbix.flags = 1; sbix.numStrikes = 1; sbix.strikes = {}
     strike = Strike(ppem=ppem, resolution=72)
     for gname in order:
         if gname in bitmaps:
             png, ox, oy = bitmaps[gname]
-            strike.glyphs[gname] = SbixGlyph(glyphName=gname, graphicType="png ",
-                                             imageData=png, originOffsetX=ox, originOffsetY=oy)
+            strike.glyphs[gname] = SbixGlyph(glyphName=gname, graphicType="png ", imageData=png,
+                                             originOffsetX=ox, originOffsetY=oy)
         else:
             strike.glyphs[gname] = SbixGlyph(glyphName=gname)
     sbix.strikes[ppem] = strike
@@ -131,65 +135,122 @@ def build_cbdt2sbix(name, spec):
         if tag in f:
             del f[tag]
     sbix_outline_boxes(f)
-    f.save(str(DIST / f"{name}.ttf"))
-    f.close()
+    f.save(str(out)); f.close()
 
-def build_colrv0(name, spec):
-    """Build a COLRv0 vector font from a set's per-codepoint SVGs via nanoemoji."""
-    WORK.mkdir(parents=True, exist_ok=True)
-    DIST.mkdir(parents=True, exist_ok=True)
+
+# ---- SVG staging (→ nanoemoji's emoji_u<cp>[_<cp>].svg naming) --------------
+def _cps_from_name(stem, naming):
+    if naming == "noto":
+        if not stem.startswith("emoji_u"):
+            return None
+        parts = stem[len("emoji_u"):].split("_")
+    elif naming in ("twemoji", "openmoji"):
+        parts = stem.lower().split("-")
+    else:
+        return None
+    try:
+        return [int(p, 16) for p in parts]
+    except ValueError:
+        return None
+
+def stage_svgs(name, spec):
+    """Clone a set's SVGs and stage them as emoji_u<cp>.svg. Returns the dir."""
+    svg = spec["svg"]
     src = WORK / f"{name}-src"
-    if not (src / spec["svg_dir"]).exists():
+    if not (src / svg["dir"]).exists():
         shutil.rmtree(src, ignore_errors=True)
         subprocess.run(["git", "clone", "--depth", "1", "--filter=blob:none", "--sparse",
-                        "-b", spec.get("branch", "main"), spec["repo"], str(src)], check=True)
-        subprocess.run(["git", "-C", str(src), "sparse-checkout", "set", spec["svg_dir"]], check=True)
-
-    # stage SVGs under nanoemoji's emoji_u<cp>[_<cp>].svg naming
+                        "-b", svg.get("branch", "main"), spec["upstream"], str(src)], check=True)
+        subprocess.run(["git", "-C", str(src), "sparse-checkout", "set", svg["dir"]], check=True)
     stage = WORK / f"{name}-stage"
     shutil.rmtree(stage, ignore_errors=True); stage.mkdir(parents=True)
-    for svg in (src / spec["svg_dir"]).glob("*.svg"):
-        base = svg.stem.lower().replace("-", "_")          # twemoji: 1f1e6-1f1e8 → 1f1e6_1f1e8
-        shutil.copy(svg, stage / f"emoji_u{base}.svg")
+    n = 0
+    for p in (src / svg["dir"]).glob("*.svg"):
+        cps = _cps_from_name(p.stem, svg["naming"])
+        if not cps:
+            continue
+        shutil.copy(p, stage / ("emoji_u" + "_".join(f"{c:x}" for c in cps) + ".svg"))
+        n += 1
+    print(f"  staged {n} SVGs")
+    return stage
 
-    build = WORK / f"{name}-build"
-    shutil.rmtree(build, ignore_errors=True); build.mkdir(parents=True)
-    env = dict(os.environ)
-    nano = shutil.which("nanoemoji")
-    if nano:                                               # ensure subtools (picosvg) resolve
-        env["PATH"] = os.path.dirname(nano) + os.pathsep + env.get("PATH", "")
-    subprocess.run(["nanoemoji", "--color_format", "glyf_colr_0", "--reuse_tolerance", "0.3",
-                    "--family", spec["label"], "--output_file", "out.ttf"] +
-                   [str(p) for p in sorted(stage.glob("emoji_u*.svg"))],
-                   cwd=str(build), env=env, check=True)
-    shutil.copy(build / "build" / "out.ttf", DIST / f"{name}.ttf")
 
-METHODS = {"download": build_download, "cbdt2sbix": build_cbdt2sbix, "colrv0": build_colrv0}
+def _drop_skin_tones(stage, multi_person_only):
+    """Remove staged SVGs that carry skin-tone modifiers (the least-common variants)."""
+    removed = 0
+    for p in list(stage.glob("emoji_u*.svg")):
+        cps = [int(x, 16) for x in p.stem[len("emoji_u"):].split("_")]
+        toned = any(c in SKIN_TONES for c in cps)
+        multi = sum(1 for c in cps if 0x1F000 <= c <= 0x1FAFF and c not in SKIN_TONES) >= 2
+        if toned and (multi or not multi_person_only):
+            p.unlink(); removed += 1
+    return removed
 
+
+# ---- per-set build ----------------------------------------------------------
+def build_sbix(name, spec):
+    DIST.mkdir(parents=True, exist_ok=True)
+    out = DIST / f"{name}.ttf"
+    if "cbdt" in spec:
+        WORK.mkdir(parents=True, exist_ok=True)
+        cbdt = WORK / f"{name}-cbdt.ttf"; curl(spec["cbdt"], cbdt)
+        cbdt_to_sbix(cbdt, out)
+    elif "sbix" in spec:
+        curl(spec["sbix"], out)
+    elif "svg" in spec:
+        stage = stage_svgs(name, spec)
+        ok, msg = run_nanoemoji(sorted(stage.glob("emoji_u*.svg")), "sbix", out, spec["label"])
+        if not ok:
+            raise SystemExit(f"{name} sbix build failed:\n{msg[-600:]}")
+    else:
+        raise SystemExit(f"{name}: no sbix source")
+    print(f"  sbix → {out} ({out.stat().st_size // 1024} KB)")
+
+def build_colrv0(name, spec):
+    out = DIST / f"{name}-colrv0.ttf"
+    if "svg" not in spec:
+        if "colrv0" in spec:                     # use upstream's COLRv0 directly
+            DIST.mkdir(parents=True, exist_ok=True)
+            curl(spec["colrv0"], out)
+            print(f"  colrv0 (upstream) → {out} ({out.stat().st_size // 1024} KB)")
+        return
+    stage = stage_svgs(name, spec)
+    for attempt, label in enumerate(("full", "drop multi-person skin tones", "drop all skin tones")):
+        if attempt == 1:
+            r = _drop_skin_tones(stage, multi_person_only=True)
+            print(f"  COLRv0 over 65k cap → dropped {r} multi-person skin-tone variants, retrying")
+        elif attempt == 2:
+            r = _drop_skin_tones(stage, multi_person_only=False)
+            print(f"  still over → dropped {r} more skin-tone variants, retrying")
+        ok, msg = run_nanoemoji(sorted(stage.glob("emoji_u*.svg")), "glyf_colr_0", out, spec["label"])
+        if ok:
+            print(f"  colrv0 → {out} ({out.stat().st_size // 1024} KB) [{label}]")
+            return
+        if not is_glyph_overflow(msg):
+            raise SystemExit(f"{name} colrv0 build failed:\n{msg[-600:]}")
+    raise SystemExit(f"{name} colrv0 still exceeds the glyph cap after dropping skin tones")
 
 def build(name):
     spec = SOURCES[name]
-    print(f"::group::build {name} ({spec['method']})")
-    METHODS[spec["method"]](name, spec)
-    out = DIST / f"{name}.ttf"
-    print(f"  → {out} ({out.stat().st_size // 1024} KB)")
+    print(f"::group::build {name}")
+    build_sbix(name, spec)
+    if "svg" in spec or "colrv0" in spec:
+        build_colrv0(name, spec)
     print("::endgroup::")
 
 
 def main(argv):
     if not argv:
         print(__doc__); return 2
-    cmd = argv[0]
-    if cmd == "changed":
+    if argv[0] == "changed":
         print("\n".join(changed_sets()))
-    elif cmd in ("build", "build-all"):
-        sets = list(SOURCES) if cmd == "build-all" else argv[1:]
+    elif argv[0] in ("build", "build-all"):
+        sets = list(SOURCES) if argv[0] == "build-all" else argv[1:]
         v = load_versions()
         for s in sets:
-            build(s)
-            v[s] = upstream_ref(SOURCES[s])
+            build(s); v[s] = upstream_ref(SOURCES[s])
         VERSIONS_FILE.write_text(json.dumps(v, indent=2, sort_keys=True) + "\n")
-        print("updated versions.json for:", " ".join(sets))
+        print("recorded refs for:", " ".join(sets))
     else:
         print(__doc__); return 2
     return 0

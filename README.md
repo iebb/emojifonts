@@ -3,47 +3,50 @@
 macOS-renderable color emoji fonts, rebuilt automatically from upstream.
 
 macOS Core Text renders **sbix**, **COLRv0** and **OT-SVG** — but *not* COLRv1 or
-CBDT. So each set is built to the best macOS-renderable form, then published as a
-release asset you can drop in as a font.
+CBDT. Every set is published as **sbix** (`<set>.ttf`) — bitmap, full coverage,
+renders everywhere including Chrome. Sets with SVG sources additionally get a
+true-vector **COLRv0** build (`<set>-colrv0.ttf`), crisp at any size.
 
-| Set | License | Built as | How |
-|-----|---------|----------|-----|
-| `noto` | Apache-2.0 / OFL | sbix | CBDT → sbix transcode |
-| `blobmoji` | OFL-1.1 | sbix | CBDT → sbix transcode |
-| `fluent` | MIT | sbix | CBDT → sbix transcode |
-| `twemoji` | CC-BY-4.0 | **COLRv0** (vector) | jdecked SVGs → nanoemoji |
-| `openmoji` | CC-BY-SA-4.0 | **COLRv0** (vector) | upstream COLRv0 |
-| `emojitwo` | CC-BY-4.0 | **COLRv0** (vector) | upstream COLRv0 |
-| `tossface` | free | sbix | upstream sbix |
+| Set | License | Upstream | sbix | COLRv0 |
+|-----|---------|----------|:----:|:------:|
+| `noto` | Apache-2.0 / OFL | [googlefonts/noto-emoji](https://github.com/googlefonts/noto-emoji) | ✅ (CBDT→sbix) | ✅¹ |
+| `blobmoji` | OFL-1.1 | [C1710/blobmoji](https://github.com/C1710/blobmoji) | ✅ (CBDT→sbix) | ✅¹ |
+| `fluent` | MIT | [microsoft/fluentui-emoji](https://github.com/microsoft/fluentui-emoji) | ✅ (CBDT→sbix) | — |
+| `twemoji` | CC-BY-4.0 | [jdecked/twemoji](https://github.com/jdecked/twemoji) | ✅ (SVG→sbix) | ✅ |
+| `openmoji` | CC-BY-SA-4.0 | [hfg-gmuend/openmoji](https://github.com/hfg-gmuend/openmoji) | ✅ (SVG→sbix) | ✅ |
+| `emojitwo` | CC-BY-4.0 | [EmojiTwo/EmojiTwo](https://github.com/EmojiTwo/EmojiTwo) | ✅ (SVG→sbix) | ✅ |
+| `tossface` | free | [toss/tossface](https://github.com/toss/tossface) | ✅ (upstream sbix) | — |
 
-Each font also gets box glyf outlines so it renders in Chrome (Skia), not just
-Core Text. Detailed sets (Noto/Blobmoji/Fluent) are bitmap because COLRv0 would
-overflow TrueType's 65 535-glyph cap on that much per-emoji detail.
+¹ COLRv0 stores one glyph per color region, so detailed sets can blow past
+TrueType's 65 535-glyph cap. When that happens the build drops the least-common
+emoji — skin-tone variants, especially multi-person sequences — until it fits.
+sbix builds also get box glyf outlines so they render in Chrome (Skia), not just
+Core Text.
 
 ## Automation
 
-- **Weekly** (`build.yml`, Mondays): checks each upstream's latest commit against
-  `versions.json` and **rebuilds only the sets that changed**, publishing them to a
-  rolling **`latest`** pre-release. Unchanged sets are left untouched.
-- **Monthly** (`release.yml`, 1st of month): snapshots the current `latest` fonts
-  into a dated `YYYY.MM` release.
+- **Weekly** ([`build.yml`](.github/workflows/build.yml), Mondays): `git ls-remote`
+  each upstream vs `versions.json` and **rebuild only the changed sets**,
+  publishing to a rolling **`latest`** pre-release. Unchanged sets are skipped.
+  Manual runs can target specific sets (the `sets` input) or `force` all.
+- **Monthly** ([`release.yml`](.github/workflows/release.yml), 1st): snapshot the
+  current `latest` fonts into a dated `YYYY.MM` release.
 
 ## Use
 
-Download a font from the latest release and install it, or wire it into a tool:
-
 ```
 https://github.com/iebb/emojifonts/releases/latest/download/<set>.ttf
+https://github.com/iebb/emojifonts/releases/latest/download/<set>-colrv0.ttf
 ```
 
-## Build locally
+## Build individually (local)
 
 ```bash
-pip install -r requirements.txt
-python build.py changed            # which sets' upstream changed
-python build.py build noto twemoji # build specific sets → dist/
-python build.py build-all          # build everything
+scripts/build.sh twemoji          # one set → dist/twemoji.ttf (+ -colrv0.ttf)
+scripts/build.sh noto blobmoji    # several
+python build.py changed           # which upstreams changed
+python build.py build-all         # everything
 ```
 
-Sources are declared in [`sources.json`](sources.json); the build logic is in
+Sources are declared in [`sources.json`](sources.json); build logic in
 [`build.py`](build.py).

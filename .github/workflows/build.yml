@@ -5,6 +5,9 @@ on:
     - cron: "0 5 * * 1"        # Mondays 05:00 UTC — sync from upstream
   workflow_dispatch:
     inputs:
+      sets:
+        description: "Specific sets to build (space-separated); blank = changed only"
+        default: ""
       force:
         description: "Build all sets (ignore change detection)"
         type: boolean
@@ -30,13 +33,15 @@ jobs:
       - name: Detect changed sets
         id: detect
         run: |
-          if [ "${{ github.event.inputs.force }}" = "true" ]; then
+          if [ -n "${{ github.event.inputs.sets }}" ]; then
+            sets="${{ github.event.inputs.sets }}"
+          elif [ "${{ github.event.inputs.force }}" = "true" ]; then
             sets=$(python -c "import json;print(' '.join(json.load(open('sources.json'))))")
           else
             sets=$(python build.py changed | tr '\n' ' ')
           fi
           echo "sets=$(echo $sets | xargs)" >> "$GITHUB_OUTPUT"
-          echo "Changed: ${sets:-<none>}"
+          echo "Building: ${sets:-<none>}"
 
       - name: Build only changed sets
         if: steps.detect.outputs.sets != ''
