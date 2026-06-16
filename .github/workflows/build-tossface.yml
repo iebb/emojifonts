@@ -2,7 +2,7 @@ name: tossface
 
 on:
   schedule:
-    - cron: "0 6 * * 1"        # Mondays — rebuilds only if tossface upstream changed
+    - cron: "0 6 * * 1"        # Mondays — rebuilds only if tossface's upstream changed
   workflow_dispatch:
     inputs:
       force:
@@ -17,6 +17,6 @@ jobs:
   build:
     uses: ./.github/workflows/_build.yml
     with:
-      set: tossface
+      action: tossface
       force: ${{ github.event.inputs.force == 'true' }}
     secrets: inherit

@@ -2,7 +2,7 @@ name: emojitwo
 
 on:
   schedule:
-    - cron: "40 5 * * 1"        # Mondays — rebuilds only if emojitwo upstream changed
+    - cron: "48 5 * * 1"        # Mondays — rebuilds only if emojitwo's upstream changed
   workflow_dispatch:
     inputs:
       force:
@@ -17,6 +17,6 @@ jobs:
   build:
     uses: ./.github/workflows/_build.yml
     with:
-      set: emojitwo
+      action: emojitwo
       force: ${{ github.event.inputs.force == 'true' }}
     secrets: inherit

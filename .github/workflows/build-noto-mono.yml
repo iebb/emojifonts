@@ -1,8 +1,8 @@
-name: fluent
+name: noto-mono
 
 on:
   schedule:
-    - cron: "24 5 * * 1"        # Mondays — rebuilds only if fluent's upstream changed
+    - cron: "8 5 * * 1"        # Mondays — rebuilds only if noto-mono's upstream changed
   workflow_dispatch:
     inputs:
       force:
@@ -17,6 +17,6 @@ jobs:
   build:
     uses: ./.github/workflows/_build.yml
     with:
-      action: fluent
+      action: noto-mono
       force: ${{ github.event.inputs.force == 'true' }}
     secrets: inherit

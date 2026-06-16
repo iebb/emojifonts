@@ -1,46 +1,100 @@
 {
   "noto": {
-    "label": "Google Noto Color Emoji",
-    "license": "Apache-2.0 / OFL-1.1",
     "upstream": "https://github.com/googlefonts/noto-emoji",
-    "cbdt": "https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf",
-    "svg": {"branch": "main", "dir": "svg", "naming": "noto"}
+    "fonts": {
+      "noto": {
+        "label": "Google Noto Color Emoji",
+        "license": "Apache-2.0 / OFL-1.1",
+        "cbdt": "https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf",
+        "svg": {"branch": "main", "dir": "svg", "naming": "noto"}
+      }
+    }
+  },
+  "noto-mono": {
+    "upstream": "https://github.com/google/fonts",
+    "ref_path": "ofl/notoemoji/NotoEmoji[wght].ttf",
+    "fonts": {
+      "noto-mono": {
+        "label": "Noto Emoji (monochrome glyph)",
+        "license": "OFL-1.1",
+        "download": "https://github.com/google/fonts/raw/main/ofl/notoemoji/NotoEmoji%5Bwght%5D.ttf"
+      }
+    }
   },
   "blobmoji": {
-    "label": "Blobmoji (Android blobs)",
-    "license": "OFL-1.1",
     "upstream": "https://github.com/C1710/blobmoji",
-    "cbdt": "https://github.com/C1710/blobmoji/raw/main/fonts/Blobmoji.ttf",
-    "svg": {"branch": "main", "dir": "svg", "naming": "noto"}
+    "fonts": {
+      "blobmoji": {
+        "label": "Blobmoji (Android blobs)",
+        "license": "OFL-1.1",
+        "cbdt": "https://github.com/C1710/blobmoji/raw/main/fonts/Blobmoji.ttf",
+        "svg": {"branch": "main", "dir": "svg", "naming": "noto"}
+      }
+    }
   },
   "fluent": {
-    "label": "Microsoft Fluent 3D",
-    "license": "MIT",
     "upstream": "https://github.com/tetunori/fluent-emoji-webfont",
-    "cbdt": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiColor.ttf"
+    "fonts": {
+      "fluent": {
+        "label": "Microsoft Fluent 3D",
+        "license": "MIT",
+        "cbdt": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiColor.ttf"
+      },
+      "fluent-flat": {
+        "label": "Microsoft Fluent Flat",
+        "license": "MIT",
+        "cbdt": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiFlat.ttf"
+      },
+      "fluent-hc": {
+        "label": "Microsoft Fluent High Contrast",
+        "license": "MIT",
+        "cbdt": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiHighContrast.ttf"
+      },
+      "fluent-hc-inverted": {
+        "label": "Microsoft Fluent High Contrast Inverted",
+        "license": "MIT",
+        "cbdt": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiHighContrastInverted.ttf"
+      }
+    }
   },
   "twemoji": {
-    "label": "Twemoji (jdecked)",
-    "license": "CC-BY-4.0",
     "upstream": "https://github.com/jdecked/twemoji",
-    "svg": {"branch": "main", "dir": "assets/svg", "naming": "twemoji"}
+    "fonts": {
+      "twemoji": {
+        "label": "Twemoji (jdecked)",
+        "license": "CC-BY-4.0",
+        "svg": {"branch": "main", "dir": "assets/svg", "naming": "twemoji"}
+      }
+    }
   },
   "openmoji": {
-    "label": "OpenMoji",
-    "license": "CC-BY-SA-4.0",
     "upstream": "https://github.com/hfg-gmuend/openmoji",
-    "svg": {"branch": "master", "dir": "color/svg", "naming": "openmoji"}
+    "fonts": {
+      "openmoji": {
+        "label": "OpenMoji",
+        "license": "CC-BY-SA-4.0",
+        "svg": {"branch": "master", "dir": "color/svg", "naming": "openmoji"}
+      }
+    }
   },
   "emojitwo": {
-    "label": "EmojiTwo (open EmojiOne)",
-    "license": "CC-BY-4.0",
     "upstream": "https://github.com/EmojiTwo/EmojiTwo",
-    "svg": {"branch": "master", "dir": "svg", "naming": "twemoji"}
+    "fonts": {
+      "emojitwo": {
+        "label": "EmojiTwo (open EmojiOne)",
+        "license": "CC-BY-4.0",
+        "svg": {"branch": "master", "dir": "svg", "naming": "twemoji"}
+      }
+    }
   },
   "tossface": {
-    "label": "Toss Face",
-    "license": "free (Toss)",
     "upstream": "https://github.com/toss/tossface",
-    "sbix": "https://github.com/toss/tossface/raw/main/dist/TossFaceFontMac.ttf"
+    "fonts": {
+      "tossface": {
+        "label": "Toss Face",
+        "license": "free (Toss)",
+        "download": "https://github.com/toss/tossface/raw/main/dist/TossFaceFontMac.ttf"
+      }
+    }
   }
 }

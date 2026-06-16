@@ -2,7 +2,7 @@ name: noto
 
 on:
   schedule:
-    - cron: "0 5 * * 1"        # Mondays — rebuilds only if noto upstream changed
+    - cron: "0 5 * * 1"        # Mondays — rebuilds only if noto's upstream changed
   workflow_dispatch:
     inputs:
       force:
@@ -17,6 +17,6 @@ jobs:
   build:
     uses: ./.github/workflows/_build.yml
     with:
-      set: noto
+      action: noto
       force: ${{ github.event.inputs.force == 'true' }}
     secrets: inherit

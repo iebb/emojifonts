@@ -2,7 +2,7 @@ name: openmoji
 
 on:
   schedule:
-    - cron: "32 5 * * 1"        # Mondays — rebuilds only if openmoji upstream changed
+    - cron: "40 5 * * 1"        # Mondays — rebuilds only if openmoji's upstream changed
   workflow_dispatch:
     inputs:
       force:
@@ -17,6 +17,6 @@ jobs:
   build:
     uses: ./.github/workflows/_build.yml
     with:
-      set: openmoji
+      action: openmoji
       force: ${{ github.event.inputs.force == 'true' }}
     secrets: inherit

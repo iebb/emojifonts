@@ -1,24 +1,23 @@
 #!/usr/bin/env python3
 """Build macOS-renderable color emoji fonts from upstream sources.
 
-macOS Core Text renders sbix, COLRv0 and OT-SVG — not COLRv1 or CBDT.
+Organised as **actions**, one per upstream repo. An action builds one or more
+**fonts** (variants) from that repo — e.g. `fluent` builds Color/Flat/HighContrast/
+HighContrastInverted, `noto` builds the color font.
 
-Every set is built as **sbix** (bitmap; works everywhere incl. Chrome, full
-coverage). Vector-capable sets (those with SVG sources) ALSO get a **COLRv0**
-build (crisp at any size) as `<set>-colrv0.ttf`. COLRv0 stores one glyph per
-color region, so detailed sets can exceed TrueType's 65 535-glyph cap; when that
-happens the build drops the least-common emoji (skin-tone variants, esp.
-multi-person sequences) until it fits.
-
-Outputs (dist/):
-  <set>.ttf          sbix  (always)
-  <set>-colrv0.ttf   COLRv0 (vector sets)
+macOS Core Text renders sbix, COLRv0 and OT-SVG — not COLRv1 or CBDT. Each font is
+built as **sbix** (`<font>.ttf`); SVG-backed fonts also get a vector **COLRv0**
+(`<font>-colrv0.ttf`), dropping the least-common skin-tone variants if it would
+exceed TrueType's 65 535-glyph cap. `download` fonts are taken as-is (e.g. the
+monochrome Noto Emoji glyph font, Toss Face's sbix).
 
 Usage:
-  build.py changed             # sets whose upstream changed (vs versions.json)
-  build.py build <set> ...     # build sets → dist/, record refs
+  build.py changed [action ...]     # actions whose upstream changed
+  build.py build <action> ...       # build all fonts in those actions
   build.py build-all
+  build.py render-versions          # regenerate VERSIONS.md from versions/*.json
 """
+import datetime
 import json
 import os
 import re
@@ -26,48 +25,92 @@ import shutil
 import struct
 import subprocess
 import sys
+import urllib.parse
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 DIST = ROOT / "dist"
 WORK = ROOT / "work"
-SOURCES = json.loads((ROOT / "sources.json").read_text())
-VERSIONS_DIR = ROOT / "versions"          # one file per set → independent per-set actions
+DATA = ROOT / "data"
+VERSIONS_DIR = ROOT / "versions"
+ACTIONS = json.loads((ROOT / "sources.json").read_text())
 SKIN_TONES = {0x1F3FB, 0x1F3FC, 0x1F3FD, 0x1F3FE, 0x1F3FF}
+EMOJI_TEST_URL = "https://unicode.org/Public/emoji/16.0/emoji-test.txt"
 
 
-# ---- per-set change detection -----------------------------------------------
-def upstream_ref(spec):
+# ---- upstream change detection (per action) ---------------------------------
+def upstream_ref(action):
+    spec = ACTIONS[action]
+    if spec.get("ref_path"):                      # precise: last commit touching one path
+        repo = spec["upstream"].split("github.com/")[1].rstrip("/")
+        url = (f"https://api.github.com/repos/{repo}/commits"
+               f"?path={urllib.parse.quote(spec['ref_path'])}&per_page=1")
+        hdr = ["-H", f"Authorization: Bearer {os.environ['GH_TOKEN']}"] if os.environ.get("GH_TOKEN") else []
+        r = subprocess.run(["curl", "-fsSL", *hdr, url], capture_output=True, text=True)
+        try:
+            return json.loads(r.stdout)[0]["sha"]
+        except Exception:
+            return "?"
     r = subprocess.run(["git", "ls-remote", spec["upstream"], "HEAD"], capture_output=True, text=True)
     toks = r.stdout.split()
     return toks[0] if toks else "?"
 
-def stored_ref(name):
-    p = VERSIONS_DIR / f"{name}.txt"
-    return p.read_text().strip() if p.exists() else None
+def stored_ref(action):
+    p = VERSIONS_DIR / f"{action}.json"
+    return json.loads(p.read_text()).get("ref") if p.exists() else None
 
-def record_ref(name, ref):
+def record_version(action, info):
     VERSIONS_DIR.mkdir(parents=True, exist_ok=True)
-    (VERSIONS_DIR / f"{name}.txt").write_text(ref + "\n")
+    (VERSIONS_DIR / f"{action}.json").write_text(json.dumps(info, indent=2) + "\n")
 
-def changed_sets(names=None):
-    names = names or list(SOURCES)
-    return [n for n in names if upstream_ref(SOURCES[n]) != stored_ref(n)]
+def changed_actions(names=None):
+    names = names or list(ACTIONS)
+    return [a for a in names if upstream_ref(a) != stored_ref(a)]
+
+
+# ---- emoji-version detection ------------------------------------------------
+def ensure_emoji_test():
+    p = DATA / "emoji-test.txt"
+    if not p.exists():
+        DATA.mkdir(parents=True, exist_ok=True)
+        subprocess.run(["curl", "-fsSL", "-o", str(p), EMOJI_TEST_URL], check=True)
+    return p
+
+def emoji_version_index():
+    """{version: [single-codepoint emoji]} from emoji-test.txt's E-tags."""
+    idx = {}
+    for line in open(ensure_emoji_test(), encoding="utf-8"):
+        if "; fully-qualified" not in line:
+            continue
+        field, _, comment = line.partition("#")
+        cps = [int(c, 16) for c in field.split(";")[0].split()]
+        base = [c for c in cps if c != 0xFE0F]
+        m = re.search(r"E(\d+\.\d+)", comment)
+        if len(base) == 1 and m:
+            idx.setdefault(float(m.group(1)), []).append(base[0])
+    return idx
+
+def detect_emoji_version(font_path, idx):
+    from fontTools.ttLib import TTFont
+    cmap = set(TTFont(str(font_path), lazy=True, fontNumber=0).getBestCmap().keys())
+    best = None
+    for v in sorted(idx):
+        if sum(c in cmap for c in idx[v]) / len(idx[v]) >= 0.8:
+            best = v
+    allcps = [c for lst in idx.values() for c in lst]
+    overall = round(100 * sum(c in cmap for c in allcps) / len(allcps))
+    return (f"{best:.1f}" if best is not None else "?"), overall
 
 
 # ---- helpers ----------------------------------------------------------------
 def curl(url, dest):
     subprocess.run(["curl", "-fsSL", "--retry", "3", "-o", str(dest), url], check=True)
 
-def nanoemoji_bin():
-    return shutil.which("nanoemoji")
-
 def run_nanoemoji(svgs, color_format, out_path, family):
-    """Returns (ok, message). Adds nanoemoji's dir to PATH so picosvg resolves."""
     build = out_path.parent / (out_path.stem + "-nb")
     shutil.rmtree(build, ignore_errors=True); build.mkdir(parents=True)
     env = dict(os.environ)
-    nb = nanoemoji_bin()
+    nb = shutil.which("nanoemoji")
     if nb:
         env["PATH"] = os.path.dirname(nb) + os.pathsep + env.get("PATH", "")
     r = subprocess.run(["nanoemoji", "--color_format", color_format, "--reuse_tolerance", "0.3",
@@ -80,12 +123,10 @@ def run_nanoemoji(svgs, color_format, out_path, family):
     return False, (r.stderr or "") + (r.stdout or "")
 
 def is_glyph_overflow(msg):
-    return "writeUShort" in msg or "0x10000" in msg or re.search(r"6553[6-9]|655[4-9]\d|6[6-9]\d\d\d", msg)
+    return "writeUShort" in msg or "0x10000" in msg or bool(re.search(r"6553[6-9]|655[4-9]\d|6[6-9]\d\d\d", msg))
 
 
-# ---- sbix transcode from CBDT ----------------------------------------------
 def sbix_outline_boxes(font):
-    """Box glyf outline per sbix bitmap so Chrome/Skia renders (and doesn't clip) it."""
     from fontTools.pens.ttGlyphPen import TTGlyphPen
     if "sbix" not in font or "glyf" not in font:
         return
@@ -143,7 +184,6 @@ def cbdt_to_sbix(src, out):
     f.save(str(out)); f.close()
 
 
-# ---- SVG staging (→ nanoemoji's emoji_u<cp>[_<cp>].svg naming) --------------
 def _cps_from_name(stem, naming):
     if naming == "noto":
         if not stem.startswith("emoji_u"):
@@ -158,30 +198,25 @@ def _cps_from_name(stem, naming):
     except ValueError:
         return None
 
-def stage_svgs(name, spec):
-    """Clone a set's SVGs and stage them as emoji_u<cp>.svg. Returns the dir."""
-    svg = spec["svg"]
-    src = WORK / f"{name}-src"
+def stage_svgs(fontkey, svg, upstream):
+    src = WORK / f"{fontkey}-src"
     if not (src / svg["dir"]).exists():
         shutil.rmtree(src, ignore_errors=True)
         subprocess.run(["git", "clone", "--depth", "1", "--filter=blob:none", "--sparse",
-                        "-b", svg.get("branch", "main"), spec["upstream"], str(src)], check=True)
+                        "-b", svg.get("branch", "main"), upstream, str(src)], check=True)
         subprocess.run(["git", "-C", str(src), "sparse-checkout", "set", svg["dir"]], check=True)
-    stage = WORK / f"{name}-stage"
+    stage = WORK / f"{fontkey}-stage"
     shutil.rmtree(stage, ignore_errors=True); stage.mkdir(parents=True)
     n = 0
     for p in (src / svg["dir"]).glob("*.svg"):
         cps = _cps_from_name(p.stem, svg["naming"])
-        if not cps:
-            continue
-        shutil.copy(p, stage / ("emoji_u" + "_".join(f"{c:x}" for c in cps) + ".svg"))
-        n += 1
-    print(f"  staged {n} SVGs")
+        if cps:
+            shutil.copy(p, stage / ("emoji_u" + "_".join(f"{c:x}" for c in cps) + ".svg"))
+            n += 1
+    print(f"    staged {n} SVGs")
     return stage
 
-
 def _drop_skin_tones(stage, multi_person_only):
-    """Remove staged SVGs that carry skin-tone modifiers (the least-common variants)."""
     removed = 0
     for p in list(stage.glob("emoji_u*.svg")):
         cps = [int(x, 16) for x in p.stem[len("emoji_u"):].split("_")]
@@ -192,76 +227,101 @@ def _drop_skin_tones(stage, multi_person_only):
     return removed
 
 
-# ---- per-set build ----------------------------------------------------------
-def build_sbix(name, spec):
-    DIST.mkdir(parents=True, exist_ok=True)
-    out = DIST / f"{name}.ttf"
-    if "cbdt" in spec:
-        WORK.mkdir(parents=True, exist_ok=True)
-        cbdt = WORK / f"{name}-cbdt.ttf"; curl(spec["cbdt"], cbdt)
-        cbdt_to_sbix(cbdt, out)
-    elif "sbix" in spec:
-        curl(spec["sbix"], out)
-    elif "svg" in spec:
-        stage = stage_svgs(name, spec)
-        ok, msg = run_nanoemoji(sorted(stage.glob("emoji_u*.svg")), "sbix", out, spec["label"])
-        if not ok:
-            raise RuntimeError(f"{name} sbix build failed:\n{msg[-600:]}")
-    else:
-        raise RuntimeError(f"{name}: no sbix source")
-    print(f"  sbix → {out} ({out.stat().st_size // 1024} KB)")
-
-def build_colrv0(name, spec):
-    out = DIST / f"{name}-colrv0.ttf"
-    if "svg" not in spec:
-        if "colrv0" in spec:                     # use upstream's COLRv0 directly
-            DIST.mkdir(parents=True, exist_ok=True)
-            curl(spec["colrv0"], out)
-            print(f"  colrv0 (upstream) → {out} ({out.stat().st_size // 1024} KB)")
-        return
-    stage = stage_svgs(name, spec)
-    for attempt, label in enumerate(("full", "drop multi-person skin tones", "drop all skin tones")):
+# ---- per-font build ---------------------------------------------------------
+def build_colrv0(fontkey, svg, upstream, label):
+    out = DIST / f"{fontkey}-colrv0.ttf"
+    stage = stage_svgs(fontkey, svg, upstream)
+    for attempt, note in enumerate(("full", "drop multi-person skin tones", "drop all skin tones")):
         if attempt == 1:
-            r = _drop_skin_tones(stage, multi_person_only=True)
-            print(f"  COLRv0 over 65k cap → dropped {r} multi-person skin-tone variants, retrying")
+            print(f"    COLRv0 over cap → dropped {_drop_skin_tones(stage, True)} multi-person skin-tone variants")
         elif attempt == 2:
-            r = _drop_skin_tones(stage, multi_person_only=False)
-            print(f"  still over → dropped {r} more skin-tone variants, retrying")
-        ok, msg = run_nanoemoji(sorted(stage.glob("emoji_u*.svg")), "glyf_colr_0", out, spec["label"])
+            print(f"    still over → dropped {_drop_skin_tones(stage, False)} more skin-tone variants")
+        ok, msg = run_nanoemoji(sorted(stage.glob("emoji_u*.svg")), "glyf_colr_0", out, label)
         if ok:
-            print(f"  colrv0 → {out} ({out.stat().st_size // 1024} KB) [{label}]")
+            print(f"    colrv0 → {out.name} ({out.stat().st_size // 1024} KB) [{note}]")
             return
         if not is_glyph_overflow(msg):
-            raise RuntimeError(f"{name} colrv0 build failed:\n{msg[-600:]}")
-    raise SystemExit(f"{name} colrv0 still exceeds the glyph cap after dropping skin tones")
+            raise RuntimeError(f"{fontkey} colrv0 failed:\n{msg[-500:]}")
+    raise RuntimeError(f"{fontkey} colrv0 still over the glyph cap after dropping skin tones")
 
-def build(name):
-    spec = SOURCES[name]
-    print(f"::group::build {name}")
-    build_sbix(name, spec)
-    if "svg" in spec or "colrv0" in spec:
-        build_colrv0(name, spec)
+def build_font(fontkey, fspec, upstream):
+    DIST.mkdir(parents=True, exist_ok=True)
+    out = DIST / f"{fontkey}.ttf"
+    if "download" in fspec:                          # take a ready font as-is (mono, sbix)
+        curl(fspec["download"], out)
+        print(f"  {fontkey}: downloaded ({out.stat().st_size // 1024} KB)")
+        return
+    if "cbdt" in fspec:                              # CBDT bitmaps → sbix
+        WORK.mkdir(parents=True, exist_ok=True)
+        cbdt = WORK / f"{fontkey}-cbdt.ttf"; curl(fspec["cbdt"], cbdt)
+        cbdt_to_sbix(cbdt, out)
+    elif "svg" in fspec:                             # SVGs → sbix (via nanoemoji)
+        stage = stage_svgs(fontkey, fspec["svg"], upstream)
+        ok, msg = run_nanoemoji(sorted(stage.glob("emoji_u*.svg")), "sbix", out, fspec["label"])
+        if not ok:
+            raise RuntimeError(f"{fontkey} sbix failed:\n{msg[-500:]}")
+    else:
+        raise RuntimeError(f"{fontkey}: no build source")
+    print(f"  {fontkey}: sbix → {out.name} ({out.stat().st_size // 1024} KB)")
+    if "svg" in fspec:                               # vector COLRv0 additionally
+        build_colrv0(fontkey, fspec["svg"], upstream, fspec["label"])
+
+
+def build_action(action):
+    spec = ACTIONS[action]
+    idx = emoji_version_index()
+    print(f"::group::action {action} ({spec['upstream']})")
+    fonts_info = {}
+    for fk, fspec in spec["fonts"].items():
+        build_font(fk, fspec, spec["upstream"])
+        ver, cov = detect_emoji_version(DIST / f"{fk}.ttf", idx)
+        fonts_info[fk] = {"emoji_version": ver, "coverage_pct": cov,
+                          "updated": datetime.date.today().isoformat()}
+        print(f"  {fk}: Emoji {ver} ({cov}% coverage)")
+    record_version(action, {"ref": upstream_ref(action), "fonts": fonts_info})
     print("::endgroup::")
+
+
+def render_versions_md():
+    out = [
+        "# Emoji versions",
+        "",
+        "The highest Unicode **Emoji version** each built font covers — it contains at",
+        "least 80% of that version's newly-added (single-codepoint) emoji — with overall",
+        "coverage of all standard emoji. Regenerated automatically on each build.",
+        "",
+        "| Font | Name | Emoji version | Coverage | Updated |",
+        "|------|------|--------------:|---------:|---------|",
+    ]
+    for action, spec in ACTIONS.items():
+        p = VERSIONS_DIR / f"{action}.json"
+        info = json.loads(p.read_text()).get("fonts", {}) if p.exists() else {}
+        for fk, fspec in spec["fonts"].items():
+            d = info.get(fk, {})
+            out.append(f"| `{fk}` | {fspec['label']} | Emoji {d.get('emoji_version', '?')} | "
+                       f"{d.get('coverage_pct', '?')}% | {d.get('updated', '')} |")
+    (ROOT / "VERSIONS.md").write_text("\n".join(out) + "\n")
 
 
 def main(argv):
     if not argv:
         print(__doc__); return 2
     if argv[0] == "changed":
-        print("\n".join(changed_sets(argv[1:] or None)))   # optional: changed <set>
+        print("\n".join(changed_actions(argv[1:] or None)))
+    elif argv[0] == "render-versions":
+        render_versions_md()
     elif argv[0] in ("build", "build-all"):
-        sets = list(SOURCES) if argv[0] == "build-all" else argv[1:]
+        actions = list(ACTIONS) if argv[0] == "build-all" else argv[1:]
         ok, failed = [], []
-        for s in sets:
+        for a in actions:
             try:
-                build(s)
-                record_ref(s, upstream_ref(SOURCES[s]))   # record only on success
-                ok.append(s)
-            except Exception as e:                        # one bad set must not abort the rest
-                print(f"::error::{s} build failed: {e}")
-                failed.append(s)
+                build_action(a); ok.append(a)
+            except Exception as e:
+                print(f"::error::{a} failed: {e}")
+                failed.append(a)
+        render_versions_md()
         print("built:", " ".join(ok) or "(none)", "| failed:", " ".join(failed) or "(none)")
-        return 1 if failed and not ok else 0              # succeed if at least one built
+        return 1 if failed and not ok else 0
     else:
         print(__doc__); return 2
     return 0

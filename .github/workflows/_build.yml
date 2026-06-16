@@ -1,10 +1,11 @@
 name: _build (reusable)
 
-# Builds ONE emoji set. Called by the per-set workflows (build-<set>.yml).
+# Builds ONE action (one upstream → one or more variant fonts). Called by the
+# per-action workflows (build-<action>.yml).
 on:
   workflow_call:
     inputs:
-      set:
+      action:
         required: true
         type: string
       force:
@@ -24,26 +25,27 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements.txt
 
-      - name: Build ${{ inputs.set }} if upstream changed
+      - name: Build ${{ inputs.action }} if upstream changed
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
-          if [ "${{ inputs.force }}" != "true" ] && [ -z "$(python build.py changed ${{ inputs.set }})" ]; then
-            echo "${{ inputs.set }}: upstream unchanged — skipping"
+          if [ "${{ inputs.force }}" != "true" ] && [ -z "$(python build.py changed ${{ inputs.action }})" ]; then
+            echo "${{ inputs.action }}: upstream unchanged — skipping"
             exit 0
           fi
-          python build.py build ${{ inputs.set }}
+          python build.py build ${{ inputs.action }}
 
           gh release view latest >/dev/null 2>&1 || \
             gh release create latest --prerelease --title "Latest builds" \
               --notes "Rolling latest fonts, refreshed when each upstream changes."
-          gh release upload latest dist/${{ inputs.set }}*.ttf --clobber
+          gh release upload latest dist/*.ttf --clobber   # every font this action built
 
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add versions/${{ inputs.set }}.txt
-          git commit -m "sync ${{ inputs.set }} from upstream" || exit 0
+          git add versions/${{ inputs.action }}.json
+          git commit -m "sync ${{ inputs.action }} from upstream" || exit 0
           for i in 1 2 3 4 5; do
             git pull --rebase --autostash && git push && break || sleep $((RANDOM % 8 + 2))
           done
+          gh workflow run docs.yml || true     # regenerate VERSIONS.md (single writer)

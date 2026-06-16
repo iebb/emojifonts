@@ -2,7 +2,7 @@ name: twemoji
 
 on:
   schedule:
-    - cron: "24 5 * * 1"        # Mondays — rebuilds only if twemoji upstream changed
+    - cron: "32 5 * * 1"        # Mondays — rebuilds only if twemoji's upstream changed
   workflow_dispatch:
     inputs:
       force:
@@ -17,6 +17,6 @@ jobs:
   build:
     uses: ./.github/workflows/_build.yml
     with:
-      set: twemoji
+      action: twemoji
       force: ${{ github.event.inputs.force == 'true' }}
     secrets: inherit

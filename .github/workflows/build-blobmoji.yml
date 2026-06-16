@@ -2,7 +2,7 @@ name: blobmoji
 
 on:
   schedule:
-    - cron: "8 5 * * 1"        # Mondays — rebuilds only if blobmoji upstream changed
+    - cron: "16 5 * * 1"        # Mondays — rebuilds only if blobmoji's upstream changed
   workflow_dispatch:
     inputs:
       force:
@@ -17,6 +17,6 @@ jobs:
   build:
     uses: ./.github/workflows/_build.yml
     with:
-      set: blobmoji
+      action: blobmoji
       force: ${{ github.event.inputs.force == 'true' }}
     secrets: inherit
