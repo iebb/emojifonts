@@ -207,13 +207,17 @@ def stage_svgs(fontkey, svg, upstream):
         subprocess.run(["git", "-C", str(src), "sparse-checkout", "set", svg["dir"]], check=True)
     stage = WORK / f"{fontkey}-stage"
     shutil.rmtree(stage, ignore_errors=True); stage.mkdir(parents=True)
-    n = 0
+    n = skipped = 0
     for p in (src / svg["dir"]).glob("*.svg"):
         cps = _cps_from_name(p.stem, svg["naming"])
-        if cps:
-            shutil.copy(p, stage / ("emoji_u" + "_".join(f"{c:x}" for c in cps) + ".svg"))
-            n += 1
-    print(f"    staged {n} SVGs")
+        if not cps:
+            continue
+        if b"<text" in p.read_bytes():        # picosvg/nanoemoji can't convert <text>
+            skipped += 1
+            continue
+        shutil.copy(p, stage / ("emoji_u" + "_".join(f"{c:x}" for c in cps) + ".svg"))
+        n += 1
+    print(f"    staged {n} SVGs" + (f" (skipped {skipped} with <text>)" if skipped else ""))
     return stage
 
 def _drop_skin_tones(stage, multi_person_only):
@@ -263,8 +267,11 @@ def build_font(fontkey, fspec, upstream):
     else:
         raise RuntimeError(f"{fontkey}: no build source")
     print(f"  {fontkey}: sbix → {out.name} ({out.stat().st_size // 1024} KB)")
-    if "svg" in fspec:                               # vector COLRv0 additionally
-        build_colrv0(fontkey, fspec["svg"], upstream, fspec["label"])
+    if "svg" in fspec:                               # vector COLRv0 additionally (best-effort)
+        try:
+            build_colrv0(fontkey, fspec["svg"], upstream, fspec["label"])
+        except Exception as e:
+            print(f"::warning::{fontkey} COLRv0 skipped (sbix still shipped): {e}")
 
 
 def build_action(action):
