@@ -43,7 +43,9 @@ EMOJI_TEST_URLS = [
     "https://unicode.org/Public/emoji/16.0/emoji-test.txt",        # pinned floor
 ]
 REPO = "iebb/emojifonts"
-RELEASE_BASE = f"https://github.com/{REPO}/releases/latest/download"
+# tag-based URL: the rolling release is a *prerelease* tagged "latest"; the
+# /releases/latest/download/ form only resolves to full releases, so use the tag.
+RELEASE_BASE = f"https://github.com/{REPO}/releases/download/latest"
 
 
 # ---- upstream change detection (per action) ---------------------------------

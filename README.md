@@ -59,9 +59,9 @@ See **[VERSIONS.md](VERSIONS.md)** for each font's detected Unicode Emoji versio
 ## Use
 
 ```
-https://github.com/iebb/emojifonts/releases/latest/download/<font>.ttf          # sbix
-https://github.com/iebb/emojifonts/releases/latest/download/<font>-colrv0.ttf    # COLRv0
-https://github.com/iebb/emojifonts/releases/latest/download/<font>-svginot.ttf   # OT-SVG
+https://github.com/iebb/emojifonts/releases/download/latest/<font>.ttf          # sbix
+https://github.com/iebb/emojifonts/releases/download/latest/<font>-colrv0.ttf    # COLRv0
+https://github.com/iebb/emojifonts/releases/download/latest/<font>-svginot.ttf   # OT-SVG
 ```
 
 **Programmatically:** [`manifest.json`](manifest.json) (also published to the release)
@@ -69,7 +69,7 @@ lists every font with its label, license, upstream, detected Emoji version, and 
 download URL for each format it ships:
 
 ```
-https://github.com/iebb/emojifonts/releases/latest/download/manifest.json
+https://github.com/iebb/emojifonts/releases/download/latest/manifest.json
 ```
 ```json
 { "key": "openmoji", "emoji_version": "16.0", "kind": "color",

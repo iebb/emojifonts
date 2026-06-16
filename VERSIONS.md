@@ -15,5 +15,5 @@ coverage of all standard emoji. Regenerated automatically on each build.
 | `fluent-hc-inverted` | Microsoft Fluent High Contrast Inverted | Emoji 15.0 | 98% | 2026-06-16 |
 | `twemoji` | Twemoji (jdecked) | Emoji 17.0 | 99% | 2026-06-16 |
 | `openmoji` | OpenMoji | Emoji 17.0 | 99% | 2026-06-16 |
-| `emojitwo` | EmojiTwo (open EmojiOne) | Emoji ? | ?% |  |
+| `emojitwo` | EmojiTwo (open EmojiOne) | Emoji 4.0 | 79% | 2026-06-16 |
 | `tossface` | Toss Face | Emoji 15.0 | 98% | 2026-06-16 |
