@@ -5,8 +5,7 @@
       "noto": {
         "label": "Google Noto Color Emoji",
         "license": "Apache-2.0 / OFL-1.1",
-        "cbdt": "https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf",
-        "svg": {"branch": "main", "dir": "svg", "naming": "noto"}
+        "cbdt": "https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf"
       }
     }
   },
@@ -27,8 +26,7 @@
       "blobmoji": {
         "label": "Blobmoji (Android blobs)",
         "license": "OFL-1.1",
-        "cbdt": "https://github.com/C1710/blobmoji/raw/main/fonts/Blobmoji.ttf",
-        "svg": {"branch": "main", "dir": "svg", "naming": "noto"}
+        "cbdt": "https://github.com/C1710/blobmoji/raw/main/fonts/Blobmoji.ttf"
       }
     }
   },
