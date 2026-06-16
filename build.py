@@ -555,6 +555,54 @@ def build_otsvg(fontkey, fspec, upstream):
     f.save(str(out)); f.close()
     print(f"  {fontkey}: otsvg → {out.name} ({out.stat().st_size // 1024} KB)")
 
+def stage_mono_svgs(fontkey, upstream):
+    """Clone microsoft/fluentui-emoji (sparse: metadata.json + High-Contrast SVGs) and stage
+    each emoji's HC SVG named by its codepoint(s) from metadata.json. Skin-tone-capable emoji
+    keep their HC under a 'Default/' subdir, so check both layouts."""
+    src = WORK / f"{fontkey}-src"
+    if not (src / "assets").exists():
+        shutil.rmtree(src, ignore_errors=True)
+        subprocess.run(["git", "clone", "--depth", "1", "--filter=blob:none", "--no-checkout",
+                        upstream, str(src)], check=True)
+        subprocess.run(["git", "-C", str(src), "sparse-checkout", "init", "--no-cone"], check=True)
+        subprocess.run(["git", "-C", str(src), "sparse-checkout", "set",
+                        "/assets/**/metadata.json", "/assets/**/High Contrast/*.svg"], check=True)
+        subprocess.run(["git", "-C", str(src), "checkout"], check=True)
+    stage = WORK / f"{fontkey}-stage"
+    shutil.rmtree(stage, ignore_errors=True); stage.mkdir(parents=True)
+    n = 0
+    for md in (src / "assets").glob("*/metadata.json"):
+        try:
+            u = json.loads(md.read_text()).get("unicode", "").strip()
+        except Exception:
+            u = ""
+        if not u:
+            continue
+        hc = (list((md.parent / "High Contrast").glob("*.svg"))                 # non-skin emoji
+              or list((md.parent / "Default" / "High Contrast").glob("*.svg")))  # skin-capable → Default/
+        if not hc:
+            continue
+        shutil.copy(hc[0], stage / ("emoji_u" + "_".join(u.split()) + ".svg")); n += 1
+    print(f"    staged {n} High-Contrast SVGs")
+    return stage
+
+def build_svg_mono(fontkey, fspec, upstream):
+    """Single-color sets (Fluent High Contrast): a true monochrome glyf OUTLINE font that
+    renders in the text colour (so it adapts to light/dark) — not a colour emoji table, so it
+    needs no bitmaps/gradients and is ~600 KB. Built from per-emoji SVGs via nanoemoji's mono
+    `glyf` format (picosvg handles fills/winding correctly), time-bounded like the other svg
+    sets so it can't hang the job."""
+    from fontTools.ttLib import TTFont
+    stage = stage_mono_svgs(fontkey, upstream)
+    picosvg_prefilter(stage)
+    out = DIST / f"{fontkey}.ttf"
+    ok, msg = run_nanoemoji(sorted(stage.glob("emoji_u*.svg")), "glyf", out, fspec["label"],
+                            timeout=NANOEMOJI_BUDGET)
+    if not ok:
+        raise RuntimeError(f"{fontkey} mono glyf failed:\n{msg[-500:]}")
+    f = TTFont(str(out)); normalize_metrics(f); f.save(str(out)); f.close()
+    print(f"  {fontkey}: mono glyf → {out.name} ({out.stat().st_size // 1024} KB)")
+
 def build_svg_color(fontkey, fspec, upstream):
     """Flat SVG sets (Twemoji, EmojiTwo).
 
@@ -603,6 +651,7 @@ BUILDERS = {
     "download": build_download,
     "svg_color": build_svg_color,
     "otsvg": build_otsvg,
+    "svg_mono": build_svg_mono,
 }
 
 def build_font(fontkey, fspec, upstream):

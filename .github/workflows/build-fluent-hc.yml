@@ -1,0 +1,22 @@
+name: fluent-hc
+
+on:
+  schedule:
+    - cron: "36 5 * * 1"        # Mondays — rebuilds only if the High-Contrast upstream changed
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Build even if upstream is unchanged"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/_build.yml
+    with:
+      action: fluent-hc
+      force: ${{ github.event.inputs.force == 'true' }}
+    secrets: inherit

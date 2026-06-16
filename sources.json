@@ -52,19 +52,23 @@
         "kind": "svg",
         "webfont": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiFlat.ttf"
       },
-      "fluent-hc": {
-        "builder": "otsvg",
-        "label": "Microsoft Fluent High Contrast",
-        "license": "MIT",
-        "kind": "svg",
-        "webfont": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiHighContrast.ttf"
-      },
       "fluent-hc-inverted": {
         "builder": "otsvg",
         "label": "Microsoft Fluent High Contrast Inverted",
         "license": "MIT",
         "kind": "svg",
         "webfont": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiHighContrastInverted.ttf"
+      }
+    }
+  },
+  "fluent-hc": {
+    "upstream": "https://github.com/microsoft/fluentui-emoji",
+    "fonts": {
+      "fluent-hc": {
+        "builder": "svg_mono",
+        "label": "Microsoft Fluent High Contrast",
+        "license": "MIT",
+        "kind": "mono"
       }
     }
   },
