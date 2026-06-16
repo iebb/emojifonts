@@ -1,0 +1,49 @@
+name: _build (reusable)
+
+# Builds ONE emoji set. Called by the per-set workflows (build-<set>.yml).
+on:
+  workflow_call:
+    inputs:
+      set:
+        required: true
+        type: string
+      force:
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+
+      - name: Build ${{ inputs.set }} if upstream changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          if [ "${{ inputs.force }}" != "true" ] && [ -z "$(python build.py changed ${{ inputs.set }})" ]; then
+            echo "${{ inputs.set }}: upstream unchanged — skipping"
+            exit 0
+          fi
+          python build.py build ${{ inputs.set }}
+
+          gh release view latest >/dev/null 2>&1 || \
+            gh release create latest --prerelease --title "Latest builds" \
+              --notes "Rolling latest fonts, refreshed when each upstream changes."
+          gh release upload latest dist/${{ inputs.set }}*.ttf --clobber
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add versions/${{ inputs.set }}.txt
+          git commit -m "sync ${{ inputs.set }} from upstream" || exit 0
+          for i in 1 2 3 4 5; do
+            git pull --rebase --autostash && git push && break || sleep $((RANDOM % 8 + 2))
+          done

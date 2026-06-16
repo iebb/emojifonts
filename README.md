@@ -25,10 +25,12 @@ Core Text.
 
 ## Automation
 
-- **Weekly** ([`build.yml`](.github/workflows/build.yml), Mondays): `git ls-remote`
-  each upstream vs `versions.json` and **rebuild only the changed sets**,
-  publishing to a rolling **`latest`** pre-release. Unchanged sets are skipped.
-  Manual runs can target specific sets (the `sets` input) or `force` all.
+- **Per-set weekly actions** — each set has its **own** workflow
+  (`build-<set>.yml`) on a staggered Monday cron. It compares the upstream's
+  latest commit to `versions/<set>.txt` and **only rebuilds if that set changed**,
+  publishing to a rolling **`latest`** pre-release. Trigger any one individually
+  (Actions → *<set>* → Run workflow), optionally `force`. All share the build
+  logic via the reusable [`_build.yml`](.github/workflows/_build.yml).
 - **Monthly** ([`release.yml`](.github/workflows/release.yml), 1st): snapshot the
   current `latest` fonts into a dated `YYYY.MM` release.
 

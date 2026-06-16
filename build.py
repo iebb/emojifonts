@@ -32,22 +32,27 @@ ROOT = Path(__file__).resolve().parent
 DIST = ROOT / "dist"
 WORK = ROOT / "work"
 SOURCES = json.loads((ROOT / "sources.json").read_text())
-VERSIONS_FILE = ROOT / "versions.json"
+VERSIONS_DIR = ROOT / "versions"          # one file per set → independent per-set actions
 SKIN_TONES = {0x1F3FB, 0x1F3FC, 0x1F3FD, 0x1F3FE, 0x1F3FF}
 
 
-# ---- change detection -------------------------------------------------------
+# ---- per-set change detection -----------------------------------------------
 def upstream_ref(spec):
     r = subprocess.run(["git", "ls-remote", spec["upstream"], "HEAD"], capture_output=True, text=True)
     toks = r.stdout.split()
     return toks[0] if toks else "?"
 
-def load_versions():
-    return json.loads(VERSIONS_FILE.read_text()) if VERSIONS_FILE.exists() else {}
+def stored_ref(name):
+    p = VERSIONS_DIR / f"{name}.txt"
+    return p.read_text().strip() if p.exists() else None
 
-def changed_sets():
-    v = load_versions()
-    return [n for n, s in SOURCES.items() if upstream_ref(s) != v.get(n)]
+def record_ref(name, ref):
+    VERSIONS_DIR.mkdir(parents=True, exist_ok=True)
+    (VERSIONS_DIR / f"{name}.txt").write_text(ref + "\n")
+
+def changed_sets(names=None):
+    names = names or list(SOURCES)
+    return [n for n in names if upstream_ref(SOURCES[n]) != stored_ref(n)]
 
 
 # ---- helpers ----------------------------------------------------------------
@@ -243,22 +248,20 @@ def main(argv):
     if not argv:
         print(__doc__); return 2
     if argv[0] == "changed":
-        print("\n".join(changed_sets()))
+        print("\n".join(changed_sets(argv[1:] or None)))   # optional: changed <set>
     elif argv[0] in ("build", "build-all"):
         sets = list(SOURCES) if argv[0] == "build-all" else argv[1:]
-        v = load_versions()
         ok, failed = [], []
         for s in sets:
             try:
                 build(s)
-                v[s] = upstream_ref(SOURCES[s])   # only record refs for sets that built
+                record_ref(s, upstream_ref(SOURCES[s]))   # record only on success
                 ok.append(s)
-            except Exception as e:                # one bad set must not abort the rest
+            except Exception as e:                        # one bad set must not abort the rest
                 print(f"::error::{s} build failed: {e}")
                 failed.append(s)
-        VERSIONS_FILE.write_text(json.dumps(v, indent=2, sort_keys=True) + "\n")
         print("built:", " ".join(ok) or "(none)", "| failed:", " ".join(failed) or "(none)")
-        return 1 if failed and not ok else 0      # succeed if at least one built
+        return 1 if failed and not ok else 0              # succeed if at least one built
     else:
         print(__doc__); return 2
     return 0
