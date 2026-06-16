@@ -338,15 +338,42 @@ def nanoemoji_colrv0(stage, out, label):
             raise RuntimeError(f"colrv0 failed:\n{msg[-500:]}")
     raise RuntimeError("colrv0 still over the glyph cap after dropping skin tones")
 
+def build_svginot(stage, out, label):
+    """OT-SVG (`SVG ` table) via nanoemoji picosvg — true vector, full gradient detail,
+    renders on macOS Core Text and Firefox (Chrome has no OT-SVG, so it shows nothing —
+    the sbix/COLRv0 cover Chrome). Normalized to a 1-em advance like the other formats;
+    the SVG docs' transforms are in font units, so scaling the UPM rescales the art."""
+    from fontTools.ttLib import TTFont
+    ok, msg = run_nanoemoji(sorted(stage.glob("emoji_u*.svg")), "picosvg", out, label)
+    if not ok:
+        raise RuntimeError(f"svginot failed:\n{msg[-500:]}")
+    f = TTFont(str(out)); normalize_metrics(f); f.save(str(out)); f.close()
+
+def svginot_from_svgs(fontkey, svg, upstream, label):
+    """Stage a set's SVGs (picosvg-clean) and build its OT-SVG → <fontkey>-svginot.ttf."""
+    stage = WORK / f"{fontkey}-svg"
+    shutil.rmtree(stage, ignore_errors=True)
+    shutil.copytree(stage_svgs(fontkey, svg, upstream), stage)
+    picosvg_prefilter(stage)
+    out = DIST / f"{fontkey}-svginot.ttf"
+    build_svginot(stage, out, label)
+    print(f"  {fontkey}: svginot → {out.name} ({out.stat().st_size // 1024} KB)")
+
 
 # ---- per-font builders ------------------------------------------------------
 def build_cbdt_sbix(fontkey, fspec, upstream):
-    """CBDT bitmap fonts → sbix (Noto, Blobmoji, Fluent variants)."""
+    """CBDT bitmap fonts → sbix (Noto, Blobmoji, Fluent variants). If the set also has
+    vector SVGs (Noto, Blobmoji), additionally build a true-vector OT-SVG."""
     WORK.mkdir(parents=True, exist_ok=True)
     out = DIST / f"{fontkey}.ttf"
     cbdt = WORK / f"{fontkey}-cbdt.ttf"; curl(fspec["cbdt"], cbdt)
     cbdt_to_sbix(cbdt, out)
     print(f"  {fontkey}: sbix → {out.name} ({out.stat().st_size // 1024} KB)")
+    if "svg" in fspec:
+        try:
+            svginot_from_svgs(fontkey, fspec["svg"], upstream, fspec["label"])
+        except Exception as e:
+            print(f"::warning::{fontkey} svginot skipped: {e}")
 
 def build_download(fontkey, fspec, upstream):
     """Ready-made fonts taken as-is (Toss Face sbix, mono Noto glyf, OpenMoji prebuilt).
@@ -363,6 +390,9 @@ def build_download(fontkey, fspec, upstream):
     if "colrv0_download" in fspec:
         cout = DIST / f"{fontkey}-colrv0.ttf"; curl(fspec["colrv0_download"], cout)
         print(f"  {fontkey}: colrv0 downloaded → {cout.name} ({cout.stat().st_size // 1024} KB)")
+    if "svginot_download" in fspec:
+        sout = DIST / f"{fontkey}-svginot.ttf"; curl(fspec["svginot_download"], sout)
+        print(f"  {fontkey}: svginot downloaded → {sout.name} ({sout.stat().st_size // 1024} KB)")
 
 def build_svg_color(fontkey, fspec, upstream):
     """Flat SVG sets (Twemoji, EmojiTwo). COLRv0 via nanoemoji (normalized to 1 em);
@@ -378,13 +408,23 @@ def build_svg_color(fontkey, fspec, upstream):
     pngs = rasterize_svgs(stage, SBIX_PPEM)
     print(f"  {fontkey}: rasterized {len(pngs)} SVGs @ {SBIX_PPEM}px (resvg)")
 
+    # picosvg-clean copy shared by the OT-SVG + COLRv0 builds
+    cstage = WORK / f"{fontkey}-colr"
+    shutil.rmtree(cstage, ignore_errors=True); shutil.copytree(stage, cstage)
+    picosvg_prefilter(cstage)
+
+    # OT-SVG (true vector, macOS/Firefox) — from the full set, before COLRv0 may drop
+    try:
+        sout = DIST / f"{fontkey}-svginot.ttf"
+        build_svginot(cstage, sout, label)
+        print(f"  {fontkey}: svginot → {sout.name} ({sout.stat().st_size // 1024} KB)")
+    except Exception as e:
+        print(f"::warning::{fontkey} svginot skipped: {e}")
+
     # COLRv0 (vector) + the cmap/GSUB structure the sbix is assembled over
     colr_out = DIST / f"{fontkey}-colrv0.ttf"
     struct = None
     try:
-        cstage = WORK / f"{fontkey}-colr"
-        shutil.rmtree(cstage, ignore_errors=True); shutil.copytree(stage, cstage)
-        picosvg_prefilter(cstage)
         nanoemoji_colrv0(cstage, colr_out, label)
         cf = TTFont(str(colr_out)); normalize_metrics(cf); cf.save(str(colr_out)); cf.close()
         struct = colr_out
@@ -506,6 +546,8 @@ def render_manifest():
                 formats[primary] = f"{RELEASE_BASE}/{fk}.ttf"
             if f"{fk}-colrv0.ttf" in assets:
                 formats["colrv0"] = f"{RELEASE_BASE}/{fk}-colrv0.ttf"
+            if f"{fk}-svginot.ttf" in assets:
+                formats["svginot"] = f"{RELEASE_BASE}/{fk}-svginot.ttf"
             fonts.append({
                 "key": fk, "label": fspec["label"], "license": fspec.get("license"),
                 "kind": fspec.get("kind", "color"), "action": action, "upstream": spec["upstream"],

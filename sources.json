@@ -6,7 +6,8 @@
         "builder": "cbdt_sbix",
         "label": "Google Noto Color Emoji",
         "license": "Apache-2.0 / OFL-1.1",
-        "cbdt": "https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf"
+        "cbdt": "https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf",
+        "svg": {"branch": "main", "dir": "svg", "naming": "noto"}
       }
     }
   },
@@ -30,7 +31,8 @@
         "builder": "cbdt_sbix",
         "label": "Blobmoji (Android blobs)",
         "license": "OFL-1.1",
-        "cbdt": "https://github.com/C1710/blobmoji/raw/main/fonts/Blobmoji.ttf"
+        "cbdt": "https://github.com/C1710/blobmoji/raw/main/fonts/Blobmoji.ttf",
+        "svg": {"branch": "main", "dir": "svg", "naming": "noto"}
       }
     }
   },
@@ -83,7 +85,8 @@
         "license": "CC-BY-SA-4.0",
         "download": "https://github.com/hfg-gmuend/openmoji/raw/master/font/OpenMoji-color-sbix/OpenMoji-color-sbix.ttf",
         "box_glyf": true,
-        "colrv0_download": "https://github.com/hfg-gmuend/openmoji/raw/master/font/OpenMoji-color-glyf_colr_0/OpenMoji-color-glyf_colr_0.ttf"
+        "colrv0_download": "https://github.com/hfg-gmuend/openmoji/raw/master/font/OpenMoji-color-glyf_colr_0/OpenMoji-color-glyf_colr_0.ttf",
+        "svginot_download": "https://github.com/hfg-gmuend/openmoji/raw/master/font/OpenMoji-color-picosvgz/OpenMoji-color-picosvgz.ttf"
       }
     }
   },

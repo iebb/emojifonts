@@ -4,25 +4,29 @@ macOS-renderable color emoji fonts, rebuilt automatically from upstream.
 
 macOS Core Text renders **sbix**, **COLRv0** and **OT-SVG** — but *not* COLRv1 or
 CBDT. Every font is published as **sbix** (`<font>.ttf`) — bitmap, full coverage,
-renders everywhere incl. Chrome. The **flat** SVG sets additionally get a true-vector
-**COLRv0** build (`<font>-colrv0.ttf`); detailed/gradient sets don't (see ¹).
-`download` fonts (mono Noto, Toss Face) ship as-is.
+renders everywhere incl. Chrome. Sets with vector SVG sources also get a true-vector
+**OT-SVG** build (`<font>-svginot.ttf`, macOS/Firefox — full detail incl. gradients);
+the **flat** ones additionally get **COLRv0** (`<font>-colrv0.ttf`, vector everywhere
+incl. Chrome). `download` fonts (mono Noto, Toss Face) ship as-is.
 
 Work is organised as **actions** — one per upstream repo — each producing one or
 more variant fonts:
 
 | Action (upstream) | Font(s) | License | Built as |
 |-------------------|---------|---------|----------|
-| `noto` · [googlefonts/noto-emoji](https://github.com/googlefonts/noto-emoji) | `noto` | Apache-2.0 / OFL | sbix |
+| `noto` · [googlefonts/noto-emoji](https://github.com/googlefonts/noto-emoji) | `noto` | Apache-2.0 / OFL | sbix + OT-SVG |
 | `noto-mono` · [google/fonts](https://github.com/google/fonts) | `noto-mono` (monochrome glyph) | OFL-1.1 | as-is (glyf) |
-| `blobmoji` · [C1710/blobmoji](https://github.com/C1710/blobmoji) | `blobmoji` | OFL-1.1 | sbix |
+| `blobmoji` · [C1710/blobmoji](https://github.com/C1710/blobmoji) | `blobmoji` | OFL-1.1 | sbix + OT-SVG |
 | `fluent` · [tetunori/fluent-emoji-webfont](https://github.com/tetunori/fluent-emoji-webfont)² | `fluent`, `fluent-flat`, `fluent-hc`, `fluent-hc-inverted` | MIT | sbix |
-| `twemoji` · [jdecked/twemoji](https://github.com/jdecked/twemoji) | `twemoji` | CC-BY-4.0 | sbix + COLRv0 |
-| `openmoji` · [hfg-gmuend/openmoji](https://github.com/hfg-gmuend/openmoji) | `openmoji` | CC-BY-SA-4.0 | sbix + COLRv0 (prebuilt) |
-| `emojitwo` · [EmojiTwo/EmojiTwo](https://github.com/EmojiTwo/EmojiTwo) | `emojitwo` | CC-BY-4.0 | sbix + COLRv0 |
+| `twemoji` · [jdecked/twemoji](https://github.com/jdecked/twemoji) | `twemoji` | CC-BY-4.0 | sbix + COLRv0 + OT-SVG |
+| `openmoji` · [hfg-gmuend/openmoji](https://github.com/hfg-gmuend/openmoji) | `openmoji` | CC-BY-SA-4.0 | sbix + COLRv0 + OT-SVG (prebuilt) |
+| `emojitwo` · [EmojiTwo/EmojiTwo](https://github.com/EmojiTwo/EmojiTwo) | `emojitwo` | CC-BY-4.0 | sbix + COLRv0 + OT-SVG |
 | `tossface` · [toss/tossface](https://github.com/toss/tossface) | `tossface` | free | as-is (sbix) |
 
 sbix builds get box glyf outlines so they render in Chrome (Skia), not just Core Text.
+OT-SVG (`-svginot.ttf`) is built for every set with per-codepoint SVGs (via nanoemoji
+picosvg, normalized to 1 em); it's true vector with full gradient detail and renders
+on macOS Core Text and Firefox (Chrome has no OT-SVG — sbix/COLRv0 cover it there).
 
 ¹ COLRv0 makes one glyph per color *region*, so detailed sets (Noto, Blobmoji — many
 gradient layers each) blow past TrueType's 65 535-glyph cap, build slowly, *and* lose
@@ -55,8 +59,9 @@ See **[VERSIONS.md](VERSIONS.md)** for each font's detected Unicode Emoji versio
 ## Use
 
 ```
-https://github.com/iebb/emojifonts/releases/latest/download/<font>.ttf
-https://github.com/iebb/emojifonts/releases/latest/download/<font>-colrv0.ttf
+https://github.com/iebb/emojifonts/releases/latest/download/<font>.ttf          # sbix
+https://github.com/iebb/emojifonts/releases/latest/download/<font>-colrv0.ttf    # COLRv0
+https://github.com/iebb/emojifonts/releases/latest/download/<font>-svginot.ttf   # OT-SVG
 ```
 
 **Programmatically:** [`manifest.json`](manifest.json) (also published to the release)
@@ -85,8 +90,8 @@ explicit and tuned to its source:
 
 | Builder | Used by | What it does |
 |---------|---------|--------------|
-| `cbdt_sbix` | Noto, Blobmoji, Fluent ×4 | lift the CBDT bitmaps into an sbix strike + box glyf |
-| `download` | Toss Face, mono Noto, OpenMoji | take the upstream font as-is (+ optional box glyf / prebuilt COLRv0) |
-| `svg_color` | Twemoji, EmojiTwo | COLRv0 via nanoemoji (normalized); sbix via resvg over its cmap+GSUB |
+| `cbdt_sbix` | Noto, Blobmoji, Fluent ×4 | lift CBDT bitmaps into an sbix strike + box glyf; + OT-SVG if the set has SVGs (Noto, Blobmoji) |
+| `download` | Toss Face, mono Noto, OpenMoji | take the upstream font as-is (+ optional box glyf / prebuilt COLRv0 / prebuilt OT-SVG) |
+| `svg_color` | Twemoji, EmojiTwo | COLRv0 + OT-SVG via nanoemoji (normalized); sbix via resvg over its cmap+GSUB |
 
 Build logic is in [`build.py`](build.py) (`BUILDERS` registry).
