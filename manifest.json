@@ -14,7 +14,8 @@
       "coverage_pct": 99,
       "updated": "2026-06-16",
       "formats": {
-        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/noto.ttf"
+        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/noto.ttf",
+        "svginot": "https://github.com/iebb/emojifonts/releases/download/latest/noto-svginot.ttf"
       }
     },
     {

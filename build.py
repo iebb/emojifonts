@@ -351,6 +351,36 @@ def build_svginot(stage, out, label):
         raise RuntimeError(f"svginot failed:\n{msg[-500:]}")
     f = TTFont(str(out)); normalize_metrics(f); f.save(str(out)); f.close()
 
+def svginot_from_colr(colr_path, out):
+    """Derive an OT-SVG font from an already-built COLRv0 — no second nanoemoji pass.
+    nanoemoji.colr_to_svg renders each COLR glyph to an SVG in OT-SVG coordinate space
+    (it's flat art, so this is lossless); we wrap each in a glyph<gid> element and pack
+    the `SVG ` table. ~6 s for 4 000 glyphs vs ~20 min for a picosvg build. The COLRv0
+    is already normalized, so its 1-em metrics carry over."""
+    from fontTools.ttLib import TTFont, newTable
+    from nanoemoji import colr_to_svg
+    from lxml import etree
+    SVGNS = "{http://www.w3.org/2000/svg}"
+    f = TTFont(str(colr_path))
+    gid = {n: i for i, n in enumerate(f.getGlyphOrder())}
+    svgs = colr_to_svg.colr_to_svg(lambda gn: colr_to_svg.glyph_region(f, gn), f)
+    docs = []
+    for gname, svg in svgs.items():
+        i = gid[gname]
+        root = svg.svg_root
+        g = etree.Element(SVGNS + "g"); g.set("id", f"glyph{i}")
+        for child in list(root):
+            g.append(child)
+        root.append(g)
+        docs.append((etree.tostring(root).decode("utf-8"), i, i))
+    docs.sort(key=lambda d: d[1])
+    for t in ("COLR", "CPAL"):
+        if t in f:
+            del f[t]
+    tab = newTable("SVG "); tab.compressed = True; tab.docList = docs
+    f["SVG "] = tab
+    f.save(str(out)); f.close()
+
 def svginot_from_svgs(fontkey, svg, upstream, label):
     """Stage a set's SVGs (picosvg-clean) and build its OT-SVG → <fontkey>-svginot.ttf."""
     stage = WORK / f"{fontkey}-svg"
@@ -415,15 +445,7 @@ def build_svg_color(fontkey, fspec, upstream):
     shutil.rmtree(cstage, ignore_errors=True); shutil.copytree(stage, cstage)
     picosvg_prefilter(cstage)
 
-    # OT-SVG (true vector, macOS/Firefox) — from the full set, before COLRv0 may drop
-    try:
-        sout = DIST / f"{fontkey}-svginot.ttf"
-        build_svginot(cstage, sout, label)
-        print(f"  {fontkey}: svginot → {sout.name} ({sout.stat().st_size // 1024} KB)")
-    except Exception as e:
-        print(f"::warning::{fontkey} svginot skipped: {e}")
-
-    # COLRv0 (vector) + the cmap/GSUB structure the sbix is assembled over
+    # COLRv0 (vector) — one nanoemoji pass; also the cmap/GSUB structure for the sbix
     colr_out = DIST / f"{fontkey}-colrv0.ttf"
     struct = None
     try:
@@ -433,6 +455,18 @@ def build_svg_color(fontkey, fspec, upstream):
         print(f"  {fontkey}: colrv0 → {colr_out.name} ({colr_out.stat().st_size // 1024} KB)")
     except Exception as e:
         print(f"::warning::{fontkey} COLRv0 skipped: {e}")
+
+    # OT-SVG (true vector, macOS/Firefox) — DERIVED from the COLRv0 in seconds
+    # (no second nanoemoji pass); falls back to a picosvg build only if COLRv0 failed
+    try:
+        sout = DIST / f"{fontkey}-svginot.ttf"
+        if struct:
+            svginot_from_colr(struct, sout)
+        else:
+            build_svginot(cstage, sout, label)
+        print(f"  {fontkey}: svginot → {sout.name} ({sout.stat().st_size // 1024} KB)")
+    except Exception as e:
+        print(f"::warning::{fontkey} svginot skipped: {e}")
 
     out = DIST / f"{fontkey}.ttf"
     if struct is None:
