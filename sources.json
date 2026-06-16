@@ -46,22 +46,25 @@
         "cbdt": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiColor.ttf"
       },
       "fluent-flat": {
-        "builder": "cbdt_sbix",
+        "builder": "otsvg",
         "label": "Microsoft Fluent Flat",
         "license": "MIT",
-        "cbdt": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiFlat.ttf"
+        "kind": "svg",
+        "webfont": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiFlat.ttf"
       },
       "fluent-hc": {
-        "builder": "cbdt_sbix",
+        "builder": "otsvg",
         "label": "Microsoft Fluent High Contrast",
         "license": "MIT",
-        "cbdt": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiHighContrast.ttf"
+        "kind": "svg",
+        "webfont": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiHighContrast.ttf"
       },
       "fluent-hc-inverted": {
-        "builder": "cbdt_sbix",
+        "builder": "otsvg",
         "label": "Microsoft Fluent High Contrast Inverted",
         "license": "MIT",
-        "cbdt": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiHighContrastInverted.ttf"
+        "kind": "svg",
+        "webfont": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiHighContrastInverted.ttf"
       }
     }
   },

@@ -534,6 +534,27 @@ def build_download(fontkey, fspec, upstream):
         sout = DIST / f"{fontkey}-svginot.ttf"; curl(fspec["svginot_download"], sout)
         print(f"  {fontkey}: svginot downloaded → {sout.name} ({sout.stat().st_size // 1024} KB)")
 
+def build_otsvg(fontkey, fspec, upstream):
+    """Keep a source webfont's vector OT-SVG (`SVG ` table — macOS Core Text renders it)
+    and drop the bitmap/COLRv1 tables macOS can't use. For the flat-style Fluent variants
+    this is a few MB of vector instead of ~20 MB of CBDT bitmaps (a bitmap font's size is
+    driven by resolution × glyph count, not color count, so a monochrome set gains nothing
+    from being bitmap). The 3D color Fluent stays cbdt_sbix — its detailed OT-SVG is
+    actually larger than its bitmaps. Metrics are left as-is; the swapper normalizes to
+    Apple's geometry at install time, same as the other sets."""
+    from fontTools.ttLib import TTFont
+    WORK.mkdir(parents=True, exist_ok=True)
+    src = WORK / f"{fontkey}-webfont.ttf"; curl(fspec["webfont"], src)
+    f = TTFont(str(src))
+    if "SVG " not in f:
+        raise RuntimeError(f"{fontkey}: source webfont has no OT-SVG table")
+    for tag in ("CBDT", "CBLC", "COLR", "CPAL"):   # the tables macOS can't render / we don't need
+        if tag in f:
+            del f[tag]
+    out = DIST / f"{fontkey}.ttf"
+    f.save(str(out)); f.close()
+    print(f"  {fontkey}: otsvg → {out.name} ({out.stat().st_size // 1024} KB)")
+
 def build_svg_color(fontkey, fspec, upstream):
     """Flat SVG sets (Twemoji, EmojiTwo).
 
@@ -581,6 +602,7 @@ BUILDERS = {
     "cbdt_sbix": build_cbdt_sbix,
     "download": build_download,
     "svg_color": build_svg_color,
+    "otsvg": build_otsvg,
 }
 
 def build_font(fontkey, fspec, upstream):
@@ -647,7 +669,7 @@ def render_manifest():
         info = json.loads(p.read_text()).get("fonts", {}) if p.exists() else {}
         for fk, fspec in spec["fonts"].items():
             d = info.get(fk, {})
-            primary = "glyf" if fspec.get("kind") == "mono" else "sbix"
+            primary = {"mono": "glyf", "svg": "svginot"}.get(fspec.get("kind"), "sbix")
             formats = {}
             if f"{fk}.ttf" in assets or not assets:
                 formats[primary] = f"{RELEASE_BASE}/{fk}.ttf"
