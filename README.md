@@ -11,7 +11,7 @@ true-vector **COLRv0** build (`<set>-colrv0.ttf`), crisp at any size.
 |-----|---------|----------|:----:|:------:|
 | `noto` | Apache-2.0 / OFL | [googlefonts/noto-emoji](https://github.com/googlefonts/noto-emoji) | ✅ (CBDT→sbix) | ✅¹ |
 | `blobmoji` | OFL-1.1 | [C1710/blobmoji](https://github.com/C1710/blobmoji) | ✅ (CBDT→sbix) | ✅¹ |
-| `fluent` | MIT | [microsoft/fluentui-emoji](https://github.com/microsoft/fluentui-emoji) | ✅ (CBDT→sbix) | — |
+| `fluent` | MIT | [tetunori/fluent-emoji-webfont](https://github.com/tetunori/fluent-emoji-webfont) ² | ✅ (CBDT→sbix) | — |
 | `twemoji` | CC-BY-4.0 | [jdecked/twemoji](https://github.com/jdecked/twemoji) | ✅ (SVG→sbix) | ✅ |
 | `openmoji` | CC-BY-SA-4.0 | [hfg-gmuend/openmoji](https://github.com/hfg-gmuend/openmoji) | ✅ (SVG→sbix) | ✅ |
 | `emojitwo` | CC-BY-4.0 | [EmojiTwo/EmojiTwo](https://github.com/EmojiTwo/EmojiTwo) | ✅ (SVG→sbix) | ✅ |
@@ -22,6 +22,10 @@ TrueType's 65 535-glyph cap. When that happens the build drops the least-common
 emoji — skin-tone variants, especially multi-person sequences — until it fits.
 sbix builds also get box glyf outlines so they render in Chrome (Skia), not just
 Core Text.
+
+² Fluent's art is Microsoft's [fluentui-emoji](https://github.com/microsoft/fluentui-emoji)
+(MIT); we build from tetunori's webfont, which packages it with codepoint mappings —
+so that's the upstream this action tracks.
 
 ## Automation
 

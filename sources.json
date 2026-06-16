@@ -16,7 +16,7 @@
   "fluent": {
     "label": "Microsoft Fluent 3D",
     "license": "MIT",
-    "upstream": "https://github.com/microsoft/fluentui-emoji",
+    "upstream": "https://github.com/tetunori/fluent-emoji-webfont",
     "cbdt": "https://github.com/tetunori/fluent-emoji-webfont/raw/main/dist/FluentEmojiColor.ttf"
   },
   "twemoji": {
@@ -35,8 +35,7 @@
     "label": "EmojiTwo (open EmojiOne)",
     "license": "CC-BY-4.0",
     "upstream": "https://github.com/EmojiTwo/EmojiTwo",
-    "svg": {"branch": "master", "dir": "svg", "naming": "twemoji"},
-    "colrv0": "https://github.com/Emoji-COLRv0/Emoji-COLRv0/raw/main/fonts/EmojiTwoCOLRv0.ttf"
+    "svg": {"branch": "master", "dir": "svg", "naming": "twemoji"}
   },
   "tossface": {
     "label": "Toss Face",
