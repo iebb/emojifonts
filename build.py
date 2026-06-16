@@ -25,6 +25,7 @@ import shutil
 import struct
 import subprocess
 import sys
+import time
 import urllib.parse
 from pathlib import Path
 
@@ -46,6 +47,11 @@ REPO = "iebb/emojifonts"
 # tag-based URL: the rolling release is a *prerelease* tagged "latest"; the
 # /releases/latest/download/ form only resolves to full releases, so use the tag.
 RELEASE_BASE = f"https://github.com/{REPO}/releases/download/latest"
+# Wall-clock budget (seconds) for each best-effort nanoemoji pass (COLRv0 / OT-SVG).
+# nanoemoji is ~20 min on GitHub's 2-core runners and can grind for an hour on an
+# over-cap set — bounding it means a slow/failed vector variant never hangs the job
+# (the sbix, the primary font, is built separately without nanoemoji). Env-overridable.
+NANOEMOJI_BUDGET = int(os.environ.get("NANOEMOJI_BUDGET_SEC", "1800"))
 
 
 # ---- upstream change detection (per action) ---------------------------------
@@ -120,20 +126,36 @@ def detect_emoji_version(font_path, idx):
 def curl(url, dest):
     subprocess.run(["curl", "-fsSL", "--retry", "3", "-o", str(dest), url], check=True)
 
-def run_nanoemoji(svgs, color_format, out_path, family):
+def run_nanoemoji(svgs, color_format, out_path, family, timeout=None):
+    """Run a nanoemoji build, optionally bounded by `timeout` seconds. On timeout the
+    whole process group (nanoemoji + its ninja/picosvg children) is killed so nothing is
+    left grinding, and (False, "…timed out…") is returned for the caller to handle."""
     build = out_path.parent / (out_path.stem + "-nb")
     shutil.rmtree(build, ignore_errors=True); build.mkdir(parents=True)
     env = dict(os.environ)
     nb = _tool("nanoemoji")
     env["PATH"] = os.path.dirname(nb) + os.pathsep + env.get("PATH", "")  # find picosvg/ninja/resvg
-    r = subprocess.run([nb, "--color_format", color_format, "--reuse_tolerance", "0.3",
-                        "--family", family, "--output_file", "out.ttf"] + [str(s) for s in svgs],
-                       cwd=str(build), env=env, capture_output=True, text=True)
+    cmd = [nb, "--color_format", color_format, "--reuse_tolerance", "0.3",
+           "--family", family, "--output_file", "out.ttf"] + [str(s) for s in svgs]
+    # new session → its own process group, so a timeout can kill ninja's whole subtree.
+    p = subprocess.Popen(cmd, cwd=str(build), env=env, text=True,
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                         start_new_session=True)
+    try:
+        out, _ = p.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        import signal
+        try:
+            os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            p.kill()
+        p.communicate()
+        return False, f"nanoemoji timed out after {int(timeout)}s"
     built = build / "build" / "out.ttf"
-    if r.returncode == 0 and built.exists():
+    if p.returncode == 0 and built.exists():
         shutil.copy(built, out_path)
         return True, ""
-    return False, (r.stderr or "") + (r.stdout or "")
+    return False, out or ""
 
 def is_glyph_overflow(msg):
     return "writeUShort" in msg or "0x10000" in msg or bool(re.search(r"6553[6-9]|655[4-9]\d|6[6-9]\d\d\d", msg))
@@ -325,17 +347,102 @@ def normalize_metrics(font):
         o.sTypoAscender, o.sTypoDescender, o.sTypoLineGap = upm, 0, 0
         o.usWinAscent, o.usWinDescent = upm, 0
 
-def nanoemoji_colrv0(stage, out, label):
+
+def build_structure_font(stems, upm=1024, family="Emoji"):
+    """Synthesize the cmap + GSUB skeleton an sbix emoji font needs — directly from the
+    staged SVG filenames, with NO nanoemoji color build. Each `emoji_u<cp>[_<cp>…].svg`
+    names a codepoint sequence (verbatim, the same way nanoemoji reads them): singles get
+    a cmap entry, multis a `ccmp` ligature whose components are the single-cp glyphs.
+    Reuses nanoemoji's own glyph_name + generate_fea, so the cmap/GSUB are identical to
+    what its COLRv0 build would emit — but in milliseconds instead of ~20 min. Returns a
+    TTFont with empty glyf outlines; the caller packs the sbix bitmaps over it."""
+    from io import StringIO
+    from fontTools.fontBuilder import FontBuilder
+    from fontTools.feaLib.builder import addOpenTypeFeatures
+    from fontTools.ttLib.tables._g_l_y_f import Glyph as GlyfGlyph
+    from nanoemoji import features
+    from nanoemoji.glyph import glyph_name
+
+    seqs = [tuple(int(x, 16) for x in s[len("emoji_u"):].split("_")) for s in stems]
+    comp_cps = sorted({c for seq in seqs for c in seq} | {0x20})   # nanoemoji always maps space
+    single = {cp: glyph_name([cp]) for cp in comp_cps}
+    multi = {seq: glyph_name(seq) for seq in seqs if len(seq) > 1}
+    order, seen = [".notdef"], {".notdef"}
+    for name in [single[cp] for cp in comp_cps] + [multi[s] for s in sorted(multi)]:
+        if name not in seen:                       # guard the rare hashed-name collision
+            order.append(name); seen.add(name)
+
+    fb = FontBuilder(unitsPerEm=upm, isTTF=True)
+    fb.setupGlyphOrder(order)
+    fb.setupCharacterMap({cp: single[cp] for cp in comp_cps})
+    empty = {}
+    for n in order:
+        g = GlyfGlyph(); g.numberOfContours = 0; empty[n] = g
+    fb.setupGlyf(empty)
+    fb.setupHorizontalMetrics({n: (upm, 0) for n in order})   # 1-em advance like Apple
+    fb.setupHorizontalHeader(ascent=upm, descent=0)
+    fb.setupNameTable({"familyName": family, "styleName": "Regular"})
+    fb.setupOS2(sTypoAscender=upm, sTypoDescender=0, sTypoLineGap=0,
+                usWinAscent=upm, usWinDescent=0)
+    fb.setupPost()
+    addOpenTypeFeatures(fb.font, StringIO(features.generate_fea(seqs)))   # ccmp ligatures
+    return fb.font
+
+
+def assemble_sbix(struct_font, pngs, out):
+    """Pack `pngs` ({stem: PNG bytes}) into one sbix strike over `struct_font` (a cmap+GSUB
+    skeleton), resolving each emoji's codepoints to its glyph via the cmap/GSUB. Full-cell
+    box outlines so Chrome (Skia) renders the bitmaps. Saves to `out`; returns count placed."""
+    from fontTools.ttLib import newTable
+    from fontTools.ttLib.tables.sbixStrike import Strike
+    from fontTools.ttLib.tables.sbixGlyph import Glyph as SbixGlyph
+
+    f = struct_font
+    upm = f["head"].unitsPerEm
+    resolve = glyph_resolver(f)
+    by_glyph = {}
+    for stem, data in pngs.items():
+        cps = [int(x, 16) for x in stem[len("emoji_u"):].split("_")]
+        g = resolve(cps)
+        if g:
+            by_glyph[g] = data
+    sbix = newTable("sbix"); sbix.version = 1; sbix.flags = 1; sbix.numStrikes = 1; sbix.strikes = {}
+    strike = Strike(ppem=SBIX_PPEM, resolution=72)
+    for g in f.getGlyphOrder():
+        strike.glyphs[g] = (SbixGlyph(glyphName=g, graphicType="png ", imageData=by_glyph[g],
+                                      originOffsetX=0, originOffsetY=0)
+                            if g in by_glyph else SbixGlyph(glyphName=g))
+    sbix.strikes[SBIX_PPEM] = strike
+    f["sbix"] = sbix
+    hmtx = f["hmtx"]
+    for g in f.getGlyphOrder():
+        hmtx[g] = (upm, 0)              # uniform 1-em advance
+    sbix_outline_boxes(f)              # full-cell box-glyf so Chrome (Skia) renders it
+    f.save(str(out)); f.close()
+    return len(by_glyph)
+
+
+def nanoemoji_colrv0(stage, out, label, budget=None):
     """COLRv0 via nanoemoji; if it overflows the 65 535-glyph cap, drop the least-common
-    emoji (multi-person skin-tone sequences first, then all skin tones) until it fits."""
+    emoji (multi-person skin-tone sequences first, then all skin tones) until it fits.
+    Bounded by `budget` seconds total: a set whose COLRv0 is slow or simply can't fit the
+    cap (e.g. EmojiTwo's dense art) gives up instead of burning ~20 min per retry — the
+    sbix is already built separately, so dropping the COLRv0 variant doesn't block release."""
+    deadline = (time.monotonic() + budget) if budget else None
     for attempt in range(3):
         if attempt == 1:
             print(f"    COLRv0 over cap → dropped {_drop_skin_tones(stage, True)} multi-person skin-tone variants")
         elif attempt == 2:
             print(f"    still over → dropped {_drop_skin_tones(stage, False)} more skin-tone variants")
-        ok, msg = run_nanoemoji(sorted(stage.glob("emoji_u*.svg")), "glyf_colr_0", out, label)
+        remaining = (deadline - time.monotonic()) if deadline else None
+        if remaining is not None and remaining <= 30:
+            raise RuntimeError(f"colrv0 time budget ({budget}s) exhausted")
+        ok, msg = run_nanoemoji(sorted(stage.glob("emoji_u*.svg")), "glyf_colr_0", out, label,
+                                timeout=remaining)
         if ok:
             return
+        if "timed out" in msg:
+            raise RuntimeError(msg)
         if not is_glyph_overflow(msg):
             raise RuntimeError(f"colrv0 failed:\n{msg[-500:]}")
     raise RuntimeError("colrv0 still over the glyph cap after dropping skin tones")
@@ -346,7 +453,8 @@ def build_svginot(stage, out, label):
     the sbix/COLRv0 cover Chrome). Normalized to a 1-em advance like the other formats;
     the SVG docs' transforms are in font units, so scaling the UPM rescales the art."""
     from fontTools.ttLib import TTFont
-    ok, msg = run_nanoemoji(sorted(stage.glob("emoji_u*.svg")), "picosvg", out, label)
+    ok, msg = run_nanoemoji(sorted(stage.glob("emoji_u*.svg")), "picosvg", out, label,
+                            timeout=NANOEMOJI_BUDGET)
     if not ok:
         raise RuntimeError(f"svginot failed:\n{msg[-500:]}")
     f = TTFont(str(out)); normalize_metrics(f); f.save(str(out)); f.close()
@@ -427,83 +535,46 @@ def build_download(fontkey, fspec, upstream):
         print(f"  {fontkey}: svginot downloaded → {sout.name} ({sout.stat().st_size // 1024} KB)")
 
 def build_svg_color(fontkey, fspec, upstream):
-    """Flat SVG sets (Twemoji, EmojiTwo). COLRv0 via nanoemoji (normalized to 1 em);
-    sbix by rasterizing the SVGs with resvg (≈instant) and assembling over the COLRv0's
-    cmap+GSUB — so the bitmap is correct by construction (1-em art, 1-em advance,
-    full-cell box-glyf) and ~10× faster than nanoemoji's bitmap pass."""
-    from fontTools.ttLib import TTFont, newTable
-    from fontTools.ttLib.tables.sbixStrike import Strike
-    from fontTools.ttLib.tables.sbixGlyph import Glyph as SbixGlyph
+    """Flat SVG sets (Twemoji, EmojiTwo).
+
+    The sbix (`<font>.ttf`, the primary font the swapper installs) is built WITHOUT
+    nanoemoji: resvg rasterizes each SVG (≈instant) and the cmap+GSUB are synthesized from
+    the filenames (build_structure_font) — a few seconds, full coverage, never gated on a
+    slow tool. The vector COLRv0 + OT-SVG derived from it are then a best-effort, time-
+    bounded extra: nanoemoji is ~20 min on CI's 2-core runners and can't fit the glyph cap
+    for dense sets (EmojiTwo), so it runs under NANOEMOJI_BUDGET and a slow/failed COLRv0
+    is skipped with a warning rather than blocking or hanging the job."""
+    from fontTools.ttLib import TTFont
 
     svg, label = fspec["svg"], fspec["label"]
     stage = stage_svgs(fontkey, svg, upstream)
     pngs = rasterize_svgs(stage, SBIX_PPEM)
     print(f"  {fontkey}: rasterized {len(pngs)} SVGs @ {SBIX_PPEM}px (resvg)")
 
-    # picosvg-clean copy shared by the OT-SVG + COLRv0 builds
+    # PRIMARY: sbix from a synthesized cmap+GSUB skeleton + the resvg PNGs (no nanoemoji).
+    out = DIST / f"{fontkey}.ttf"
+    stems = [p.stem for p in stage.glob("emoji_u*.svg")]
+    placed = assemble_sbix(build_structure_font(stems, family=label), pngs, out)
+    print(f"  {fontkey}: sbix → {out.name} ({out.stat().st_size // 1024} KB, {placed} emoji)")
+
+    # OPTIONAL (best-effort, time-bounded): COLRv0 vector + OT-SVG derived from it. Never
+    # required for the sbix above, so a slow or over-cap COLRv0 just drops these variants.
     cstage = WORK / f"{fontkey}-colr"
     shutil.rmtree(cstage, ignore_errors=True); shutil.copytree(stage, cstage)
     picosvg_prefilter(cstage)
-
-    # COLRv0 (vector) — one nanoemoji pass; also the cmap/GSUB structure for the sbix
     colr_out = DIST / f"{fontkey}-colrv0.ttf"
-    struct = None
     try:
-        nanoemoji_colrv0(cstage, colr_out, label)
+        nanoemoji_colrv0(cstage, colr_out, label, budget=NANOEMOJI_BUDGET)
         cf = TTFont(str(colr_out)); normalize_metrics(cf); cf.save(str(colr_out)); cf.close()
-        struct = colr_out
         print(f"  {fontkey}: colrv0 → {colr_out.name} ({colr_out.stat().st_size // 1024} KB)")
+        try:
+            sout = DIST / f"{fontkey}-svginot.ttf"
+            svginot_from_colr(colr_out, sout)        # ~6 s, lossless for flat art
+            print(f"  {fontkey}: svginot → {sout.name} ({sout.stat().st_size // 1024} KB)")
+        except Exception as e:
+            print(f"::warning::{fontkey} svginot skipped: {e}")
     except Exception as e:
-        print(f"::warning::{fontkey} COLRv0 skipped: {e}")
-
-    # OT-SVG (true vector, macOS/Firefox) — DERIVED from the COLRv0 in seconds
-    # (no second nanoemoji pass); falls back to a picosvg build only if COLRv0 failed
-    try:
-        sout = DIST / f"{fontkey}-svginot.ttf"
-        if struct:
-            svginot_from_colr(struct, sout)
-        else:
-            build_svginot(cstage, sout, label)
-        print(f"  {fontkey}: svginot → {sout.name} ({sout.stat().st_size // 1024} KB)")
-    except Exception as e:
-        print(f"::warning::{fontkey} svginot skipped: {e}")
-
-    out = DIST / f"{fontkey}.ttf"
-    if struct is None:
-        # rare: COLRv0 unbuildable → fall back to nanoemoji's (slow) sbix + normalize
-        ok, msg = run_nanoemoji(sorted(stage.glob("emoji_u*.svg")), "sbix", out, label)
-        if not ok:
-            raise RuntimeError(f"{fontkey} sbix failed:\n{msg[-500:]}")
-        f = TTFont(str(out)); normalize_metrics(f); f.save(str(out)); f.close()
-        print(f"  {fontkey}: sbix (nanoemoji fallback) → {out.name} ({out.stat().st_size // 1024} KB)")
-        return
-
-    f = TTFont(str(struct))
-    for t in ("COLR", "CPAL", "SVG "):
-        if t in f:
-            del f[t]
-    upm = f["head"].unitsPerEm
-    resolve = glyph_resolver(f)
-    by_glyph = {}
-    for stem, data in pngs.items():
-        cps = [int(x, 16) for x in stem[len("emoji_u"):].split("_")]
-        g = resolve(cps)
-        if g:
-            by_glyph[g] = data
-    sbix = newTable("sbix"); sbix.version = 1; sbix.flags = 1; sbix.numStrikes = 1; sbix.strikes = {}
-    strike = Strike(ppem=SBIX_PPEM, resolution=72)
-    for g in f.getGlyphOrder():
-        strike.glyphs[g] = (SbixGlyph(glyphName=g, graphicType="png ", imageData=by_glyph[g],
-                                      originOffsetX=0, originOffsetY=0)
-                            if g in by_glyph else SbixGlyph(glyphName=g))
-    sbix.strikes[SBIX_PPEM] = strike
-    f["sbix"] = sbix
-    hmtx = f["hmtx"]
-    for g in f.getGlyphOrder():
-        hmtx[g] = (upm, 0)              # uniform 1-em advance
-    sbix_outline_boxes(f)              # full-cell box-glyf so Chrome (Skia) renders it
-    f.save(str(out)); f.close()
-    print(f"  {fontkey}: sbix → {out.name} ({out.stat().st_size // 1024} KB, {len(by_glyph)} emoji)")
+        print(f"::warning::{fontkey} colrv0 skipped (sbix already built): {e}")
 
 
 BUILDERS = {
