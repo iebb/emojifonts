@@ -79,10 +79,11 @@ https://github.com/iebb/emojifonts/releases/download/latest/manifest.json
 ## Build locally
 
 ```bash
-scripts/build.sh twemoji      # build an action's fonts → dist/
-scripts/build.sh fluent       # → fluent.ttf, fluent-flat.ttf, fluent-hc.ttf, fluent-hc-inverted.ttf
-python build.py changed       # which upstreams changed
-python build.py build-all
+scripts/build.sh twemoji      # build one font's variants → dist/
+scripts/build.sh fluent       # → fluent.ttf (3D), fluent-flat.ttf
+python build_noto.py build    # each font has its own one-line generation script
+python build_noto.py changed  # print the action iff its upstream changed
+python common.py build-all    # everything · common.py holds the shared build code
 ```
 
 Each font names a **builder** in [`sources.json`](sources.json), so its pipeline is
@@ -90,8 +91,11 @@ explicit and tuned to its source:
 
 | Builder | Used by | What it does |
 |---------|---------|--------------|
-| `cbdt_sbix` | Noto, Blobmoji, Fluent ×4 | lift CBDT bitmaps into an sbix strike + box glyf; + OT-SVG if the set has SVGs (Noto, Blobmoji) |
+| `cbdt_sbix` | Noto, Blobmoji, Fluent 3D | lift CBDT bitmaps into an sbix strike (centred on the em) + box glyf; + OT-SVG if the set has SVGs (Noto, Blobmoji) |
+| `otsvg` | Fluent Flat | keep the source webfont's vector OT-SVG, drop the bitmap/COLRv1 tables macOS can't render |
+| `svg_mono` | Fluent (monochrome) | a true monochrome glyf font (renders in the text colour) via nanoemoji's mono `glyf`, from MS's High-Contrast SVGs |
 | `download` | Toss Face, mono Noto, OpenMoji | take the upstream font as-is (+ optional box glyf / prebuilt COLRv0 / prebuilt OT-SVG) |
 | `svg_color` | Twemoji, EmojiTwo | COLRv0 + OT-SVG via nanoemoji (normalized); sbix via resvg over its cmap+GSUB |
 
-Build logic is in [`build.py`](build.py) (`BUILDERS` registry).
+The shared build code is in [`common.py`](common.py) (`BUILDERS` registry); each font has a
+one-line generation script `build_<font>.py` that calls it.

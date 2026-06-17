@@ -26,7 +26,7 @@ jobs:
       - name: Render VERSIONS.md + manifest.json
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python build.py render-docs
+        run: python common.py render-docs
 
       - name: Publish manifest.json to the latest release
         env:

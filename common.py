@@ -11,11 +11,13 @@ built as **sbix** (`<font>.ttf`); SVG-backed fonts also get a vector **COLRv0**
 exceed TrueType's 65 535-glyph cap. `download` fonts are taken as-is (e.g. the
 monochrome Noto Emoji glyph font, Toss Face's sbix).
 
-Usage:
-  build.py changed [action ...]     # actions whose upstream changed
-  build.py build <action> ...       # build all fonts in those actions
-  build.py build-all
-  build.py render-versions          # regenerate VERSIONS.md from versions/*.json
+This module is the shared library. Each font has its own one-line generation
+script `build_<font>.py` that calls `cli(<action>, …)` and reuses everything here.
+
+  python build_noto.py build        # generate one font's variants
+  python build_noto.py changed      # print the action if its upstream changed
+  python common.py build-all        # generate every font (local convenience)
+  python common.py render-docs      # regenerate VERSIONS.md + manifest.json
 """
 import datetime
 import json
@@ -191,7 +193,16 @@ def cbdt_to_sbix(src, out):
     for sd in f["CBDT"].strikeData:
         for gname, gd in sd.items():
             png = getattr(gd, "imageData", None)
-            if png:
+            if not png:
+                continue
+            # Centre the bitmap on the em (offsets in px at the strike ppem) so the art sits
+            # at the em-centre like Apple's — not resting on the baseline and riding high.
+            # Source bitmaps are often larger than the em (Noto ≈ 1.2 em), so offsets go
+            # negative; centring is exact: art-centre = (off + bh/2)·scale = ppem/2·scale = UPM/2.
+            if png[:4] == b"\x89PNG":
+                bw, bh = struct.unpack(">II", png[16:24])
+                bitmaps[gname] = (png, round((ppem - bw) / 2), round((ppem - bh) / 2))
+            else:
                 bitmaps[gname] = (png, int(getattr(gd.metrics, "BearingX", 0)), 0)
     order = f.getGlyphOrder()
     glyf = newTable("glyf"); glyf.glyphOrder = order; glyf.glyphs = {}
@@ -745,6 +756,30 @@ def render_manifest():
 def render_docs():
     render_versions_md()
     render_manifest()
+
+
+def cli(action, argv):
+    """Entry point for a per-font `build_<font>.py` script.
+
+      changed → print the action name iff its upstream changed (empty otherwise),
+                so CI can skip an unchanged font with `[ -z "$(… changed)" ]`.
+      build   → build the action's font(s) and refresh VERSIONS.md + manifest.json.
+    """
+    cmd = argv[0] if argv else "build"
+    if cmd == "changed":
+        if upstream_ref(action) != stored_ref(action):
+            print(action)
+        return 0
+    if cmd == "build":
+        try:
+            build_action(action)
+        except Exception as e:
+            print(f"::error::{action} failed: {e}")
+            return 1
+        render_docs()
+        return 0
+    print(f"usage: build_{action.replace('-', '_')}.py [changed|build]")
+    return 2
 
 
 def main(argv):

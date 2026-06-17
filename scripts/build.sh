@@ -14,5 +14,7 @@ if [ "$#" -eq 0 ]; then
   "$VENV/bin/python" -c "import json;print('sets:',' '.join(json.load(open('$HERE/sources.json'))))"
   exit 0
 fi
-"$VENV/bin/python" "$HERE/build.py" build "$@"
+for a in "$@"; do
+  "$VENV/bin/python" "$HERE/build_${a//-/_}.py" build   # one generation script per font
+done
 echo "→ dist/"

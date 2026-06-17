@@ -30,11 +30,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
-          if [ "${{ inputs.force }}" != "true" ] && [ -z "$(python build.py changed ${{ inputs.action }})" ]; then
+          SCRIPT="build_$(echo '${{ inputs.action }}' | tr - _).py"   # noto-mono → build_noto_mono.py
+          if [ "${{ inputs.force }}" != "true" ] && [ -z "$(python "$SCRIPT" changed)" ]; then
             echo "${{ inputs.action }}: upstream unchanged — skipping"
             exit 0
           fi
-          python build.py build ${{ inputs.action }}
+          python "$SCRIPT" build
 
           gh release view latest >/dev/null 2>&1 || \
             gh release create latest --prerelease --title "Latest builds" \
