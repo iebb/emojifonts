@@ -743,6 +743,8 @@ def render_manifest():
                 formats["colrv0"] = f"{RELEASE_BASE}/{fk}-colrv0.ttf"
             if f"{fk}-svginot.ttf" in assets:
                 formats["svginot"] = f"{RELEASE_BASE}/{fk}-svginot.ttf"
+            if f"{fk}.ttc" in assets:   # macOS system drop-in (Apple Color Emoji.ttc)
+                formats["ttc"] = f"{RELEASE_BASE}/{fk}.ttc"
             fonts.append({
                 "key": fk, "label": fspec["label"], "license": fspec.get("license"),
                 "kind": fspec.get("kind", "color"), "action": action, "upstream": spec["upstream"],

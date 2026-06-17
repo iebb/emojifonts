@@ -1,0 +1,44 @@
+name: ttc (macOS system fonts)
+
+# Builds the macOS system drop-in `<font>.ttc` (a 2-member "Apple Color Emoji"
+# collection, art normalised to 1 em) from each color/sbix font in the `latest`
+# release, and uploads them back. Runs after the per-set font builds, weekly, and
+# on demand. Pure Python (fonttools + Pillow) — no macOS runner needed.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 7 * * 1"        # Mondays 07:00 UTC, after the per-set builds (05:00)
+  workflow_run:
+    workflows: [noto, twemoji, openmoji, emojitwo, blobmoji, tossface, fluent]
+    types: [completed]
+
+permissions:
+  contents: write
+
+jobs:
+  ttc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Build + upload .ttc for every color/sbix font in 'latest'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          mkdir -p dist
+          gh release download latest --dir dist --pattern "*.ttf"
+          for ttf in dist/*.ttf; do
+            case "$ttf" in *-colrv0.ttf|*-svginot.ttf) continue ;; esac   # vector variants
+            python build_ttc.py "$ttf" "${ttf%.ttf}.ttc" || true          # skips mono/glyf
+          done
+          if ls dist/*.ttc >/dev/null 2>&1; then
+            gh release upload latest dist/*.ttc --clobber
+            gh workflow run docs.yml || true     # refresh manifest.json with the ttc URLs
+          else
+            echo "no .ttc produced"
+          fi
