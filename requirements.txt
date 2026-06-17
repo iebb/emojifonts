@@ -1,3 +1,4 @@
 fonttools>=4.50
 nanoemoji>=0.15
 ninja
+pillow>=10.0
