@@ -86,6 +86,27 @@ detected Emoji version, and a download URL per format:
                "svginot": ".../twemoji-svginot.ttf" } }
 ```
 
+## Install as macOS system font
+
+Replacing the sealed system font is the only route that changes auto-typed emoji in
+all apps. It requires SIP and authenticated-root to be disabled first — see
+[iebb/emojiswap → system-font/README.md](https://github.com/iebb/emojiswap/blob/main/system-font/README.md)
+for the one-time Recovery steps.
+
+Once security is lowered, [`install-system.sh`](install-system.sh) presents a
+numbered picker and handles the rest — download, backup, mount, install, bless:
+
+```bash
+./install-system.sh            # interactive picker
+sudo ./install-system.sh noto  # or pass a set key directly
+sudo ./install-system.sh apple # restore the backed-up original
+sudo reboot
+```
+
+It backs up the pristine original to `backup/` beside the script on first run
+(never clobbering an existing backup), and prints an undo command at the end.
+Re-run after any macOS update (updates reseal the system volume).
+
 ## Formats
 
 Color-emoji fonts carry the artwork in one of several tables; each renderer supports a
