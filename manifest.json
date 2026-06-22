@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-16",
+  "generated": "2026-06-22",
   "repo": "iebb/emojifonts",
   "release": "https://github.com/iebb/emojifonts/releases/latest",
   "fonts": [
@@ -12,10 +12,11 @@
       "upstream": "https://github.com/googlefonts/noto-emoji",
       "emoji_version": "17.0",
       "coverage_pct": 99,
-      "updated": "2026-06-16",
+      "updated": "2026-06-17",
       "formats": {
         "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/noto.ttf",
-        "svginot": "https://github.com/iebb/emojifonts/releases/download/latest/noto-svginot.ttf"
+        "svginot": "https://github.com/iebb/emojifonts/releases/download/latest/noto-svginot.ttf",
+        "ttc": "https://github.com/iebb/emojifonts/releases/download/latest/noto.ttc"
       }
     },
     {
@@ -41,9 +42,10 @@
       "upstream": "https://github.com/C1710/blobmoji",
       "emoji_version": "15.0",
       "coverage_pct": 98,
-      "updated": "2026-06-16",
+      "updated": "2026-06-17",
       "formats": {
-        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/blobmoji.ttf"
+        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/blobmoji.ttf",
+        "ttc": "https://github.com/iebb/emojifonts/releases/download/latest/blobmoji.ttc"
       }
     },
     {
@@ -57,49 +59,36 @@
       "coverage_pct": 98,
       "updated": "2026-06-16",
       "formats": {
-        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/fluent.ttf"
+        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/fluent.ttf",
+        "ttc": "https://github.com/iebb/emojifonts/releases/download/latest/fluent.ttc"
       }
     },
     {
       "key": "fluent-flat",
       "label": "Microsoft Fluent Flat",
       "license": "MIT",
-      "kind": "color",
+      "kind": "svg",
       "action": "fluent",
       "upstream": "https://github.com/tetunori/fluent-emoji-webfont",
       "emoji_version": "15.0",
       "coverage_pct": 98,
       "updated": "2026-06-16",
       "formats": {
-        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/fluent-flat.ttf"
+        "svginot": "https://github.com/iebb/emojifonts/releases/download/latest/fluent-flat.ttf"
       }
     },
     {
-      "key": "fluent-hc",
-      "label": "Microsoft Fluent High Contrast",
+      "key": "fluent-mono",
+      "label": "Microsoft Fluent (monochrome)",
       "license": "MIT",
-      "kind": "color",
-      "action": "fluent",
-      "upstream": "https://github.com/tetunori/fluent-emoji-webfont",
+      "kind": "mono",
+      "action": "fluent-mono",
+      "upstream": "https://github.com/microsoft/fluentui-emoji",
       "emoji_version": "15.0",
-      "coverage_pct": 98,
+      "coverage_pct": 97,
       "updated": "2026-06-16",
       "formats": {
-        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/fluent-hc.ttf"
-      }
-    },
-    {
-      "key": "fluent-hc-inverted",
-      "label": "Microsoft Fluent High Contrast Inverted",
-      "license": "MIT",
-      "kind": "color",
-      "action": "fluent",
-      "upstream": "https://github.com/tetunori/fluent-emoji-webfont",
-      "emoji_version": "15.0",
-      "coverage_pct": 98,
-      "updated": "2026-06-16",
-      "formats": {
-        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/fluent-hc-inverted.ttf"
+        "glyf": "https://github.com/iebb/emojifonts/releases/download/latest/fluent-mono.ttf"
       }
     },
     {
@@ -112,7 +101,12 @@
       "emoji_version": "17.0",
       "coverage_pct": 99,
       "updated": "2026-06-16",
-      "formats": {}
+      "formats": {
+        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/twemoji.ttf",
+        "colrv0": "https://github.com/iebb/emojifonts/releases/download/latest/twemoji-colrv0.ttf",
+        "svginot": "https://github.com/iebb/emojifonts/releases/download/latest/twemoji-svginot.ttf",
+        "ttc": "https://github.com/iebb/emojifonts/releases/download/latest/twemoji.ttc"
+      }
     },
     {
       "key": "openmoji",
@@ -127,7 +121,8 @@
       "formats": {
         "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/openmoji.ttf",
         "colrv0": "https://github.com/iebb/emojifonts/releases/download/latest/openmoji-colrv0.ttf",
-        "svginot": "https://github.com/iebb/emojifonts/releases/download/latest/openmoji-svginot.ttf"
+        "svginot": "https://github.com/iebb/emojifonts/releases/download/latest/openmoji-svginot.ttf",
+        "ttc": "https://github.com/iebb/emojifonts/releases/download/latest/openmoji.ttc"
       }
     },
     {
@@ -138,10 +133,11 @@
       "action": "emojitwo",
       "upstream": "https://github.com/EmojiTwo/EmojiTwo",
       "emoji_version": "4.0",
-      "coverage_pct": 79,
+      "coverage_pct": 78,
       "updated": "2026-06-16",
       "formats": {
-        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/emojitwo.ttf"
+        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/emojitwo.ttf",
+        "ttc": "https://github.com/iebb/emojifonts/releases/download/latest/emojitwo.ttc"
       }
     },
     {
@@ -155,7 +151,8 @@
       "coverage_pct": 98,
       "updated": "2026-06-16",
       "formats": {
-        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/tossface.ttf"
+        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/tossface.ttf",
+        "ttc": "https://github.com/iebb/emojifonts/releases/download/latest/tossface.ttc"
       }
     }
   ]
