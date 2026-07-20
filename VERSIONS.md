@@ -6,13 +6,13 @@ coverage of all standard emoji. Regenerated automatically on each build.
 
 | Font | Name | Emoji version | Coverage | Updated |
 |------|------|--------------:|---------:|---------|
-| `noto` | Google Noto Color Emoji | Emoji 17.0 | 99% | 2026-06-17 |
-| `noto-mono` | Noto Emoji (monochrome glyph) | Emoji 15.0 | 98% | 2026-06-16 |
-| `blobmoji` | Blobmoji (Android blobs) | Emoji 15.0 | 98% | 2026-06-17 |
-| `fluent` | Microsoft Fluent 3D | Emoji 15.0 | 98% | 2026-06-16 |
-| `fluent-flat` | Microsoft Fluent Flat | Emoji 15.0 | 98% | 2026-06-16 |
-| `fluent-mono` | Microsoft Fluent (monochrome) | Emoji 15.0 | 97% | 2026-06-16 |
-| `twemoji` | Twemoji (jdecked) | Emoji 17.0 | 99% | 2026-06-16 |
-| `openmoji` | OpenMoji | Emoji 17.0 | 99% | 2026-06-16 |
-| `emojitwo` | EmojiTwo (open EmojiOne) | Emoji 4.0 | 78% | 2026-06-16 |
-| `tossface` | Toss Face | Emoji 15.0 | 98% | 2026-06-16 |
+| `noto` | Google Noto Color Emoji | Emoji 17.0 | 99% | 2026-07-20 |
+| `noto-mono` | Noto Emoji (monochrome glyph) | Emoji 15.0 | 98% | 2026-07-20 |
+| `blobmoji` | Blobmoji (Android blobs) | Emoji 15.0 | 98% | 2026-07-20 |
+| `fluent` | Microsoft Fluent 3D | Emoji 15.0 | 98% | 2026-07-20 |
+| `fluent-flat` | Microsoft Fluent Flat | Emoji 15.0 | 98% | 2026-07-20 |
+| `fluent-mono` | Microsoft Fluent (monochrome) | Emoji 15.0 | 97% | 2026-07-20 |
+| `twemoji` | Twemoji (jdecked) | Emoji 17.0 | 99% | 2026-07-20 |
+| `openmoji` | OpenMoji | Emoji 17.0 | 99% | 2026-07-20 |
+| `emojitwo` | EmojiTwo (open EmojiOne) | Emoji 4.0 | 78% | 2026-07-20 |
+| `tossface` | Toss Face | Emoji 15.0 | 98% | 2026-07-20 |
