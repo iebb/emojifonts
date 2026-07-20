@@ -32,11 +32,17 @@ jobs:
           set -e
           mkdir -p dist
           gh release download latest --dir dist --pattern "*.ttf"
+          # Also sanitize every existing release variant. This covers optional vector
+          # assets retained from an older build when a best-effort rebuild is skipped.
+          python font_cmap.py dist/*.ttf
+          python font_cmap.py --check dist/*.ttf
           for ttf in dist/*.ttf; do
             case "$ttf" in *-colrv0.ttf|*-svginot.ttf) continue ;; esac   # vector variants
             python build_ttc.py "$ttf" "${ttf%.ttf}.ttc" || true          # skips mono/glyf
           done
+          gh release upload latest dist/*.ttf --clobber
           if ls dist/*.ttc >/dev/null 2>&1; then
+            python font_cmap.py --check dist/*.ttc
             gh release upload latest dist/*.ttc --clobber
             gh workflow run docs.yml || true     # refresh manifest.json with the ttc URLs
           else

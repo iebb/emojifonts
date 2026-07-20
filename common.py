@@ -31,6 +31,8 @@ import time
 import urllib.parse
 from pathlib import Path
 
+from font_cmap import sanitize_font_file, verify_font_file
+
 ROOT = Path(__file__).resolve().parent
 DIST = ROOT / "dist"
 WORK = ROOT / "work"
@@ -677,6 +679,18 @@ def build_font(fontkey, fspec, upstream):
     if not builder:
         raise RuntimeError(f"{fontkey}: unknown builder {fspec.get('builder')!r}")
     builder(fontkey, fspec, upstream)
+    # Every builder goes through this common boundary, including downloaded fonts and
+    # optional vector variants. Keep keycap glyphs/GSUB data, but never let an emoji
+    # font claim standalone ASCII digits or digit+VS16 variation sequences.
+    for path in (
+        DIST / f"{fontkey}.ttf",
+        DIST / f"{fontkey}-colrv0.ttf",
+        DIST / f"{fontkey}-svginot.ttf",
+    ):
+        if path.exists():
+            removed = sanitize_font_file(path)
+            verify_font_file(path)
+            print(f"  {fontkey}: stripped {removed} ASCII digit cmap/UVS entries from {path.name}")
 
 
 def build_action(action):

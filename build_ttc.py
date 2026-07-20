@@ -20,6 +20,8 @@ from fontTools.ttLib import TTFont, TTCollection
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from PIL import Image
 
+from font_cmap import strip_ascii_digit_mappings, verify_font_file
+
 # 2-member collection, named exactly as the system font's members.
 SYSTEM_TTC_MEMBERS = [
     {1: "Apple Color Emoji",      2: "Regular", 4: "Apple Color Emoji",
@@ -131,12 +133,14 @@ def build_ttc(src, out):
     members = []
     for namemap in SYSTEM_TTC_MEMBERS:
         f = TTFont(src, lazy=True, fontNumber=0)
+        strip_ascii_digit_mappings(f)
         normalize_to_apple_metrics(f, art)
         set_names(f["name"], namemap)
         members.append(f)
     ttc = TTCollection()
     ttc.fonts = members
     ttc.save(out)
+    verify_font_file(out)
     print(f"  wrote {out}")
     return True
 

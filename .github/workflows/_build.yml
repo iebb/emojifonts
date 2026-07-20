@@ -36,6 +36,7 @@ jobs:
             exit 0
           fi
           python "$SCRIPT" build
+          python font_cmap.py --check dist/*.ttf
 
           gh release view latest >/dev/null 2>&1 || \
             gh release create latest --prerelease --title "Latest builds" \
