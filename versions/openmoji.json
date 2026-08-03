@@ -1,10 +1,10 @@
 {
-  "ref": "d05930b34516a0a3ff00aad0288ee05364cebd8b",
+  "ref": "e6a003adeea3a8e6cd1b3fd87a11babc3b81d910",
   "fonts": {
     "openmoji": {
-      "emoji_version": "17.0",
-      "coverage_pct": 99,
-      "updated": "2026-07-20"
+      "emoji_version": "18.0",
+      "coverage_pct": 100,
+      "updated": "2026-08-03"
     }
   }
 }
