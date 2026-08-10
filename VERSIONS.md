@@ -13,6 +13,6 @@ coverage of all standard emoji. Regenerated automatically on each build.
 | `fluent-flat` | Microsoft Fluent Flat | Emoji 15.0 | 98% | 2026-07-20 |
 | `fluent-mono` | Microsoft Fluent (monochrome) | Emoji 15.0 | 97% | 2026-07-20 |
 | `twemoji` | Twemoji (jdecked) | Emoji 17.0 | 99% | 2026-07-20 |
-| `openmoji` | OpenMoji | Emoji 18.0 | 100% | 2026-08-03 |
+| `openmoji` | OpenMoji | Emoji 18.0 | 100% | 2026-08-10 |
 | `emojitwo` | EmojiTwo (open EmojiOne) | Emoji 4.0 | 78% | 2026-07-20 |
 | `tossface` | Toss Face | Emoji 15.0 | 98% | 2026-07-20 |

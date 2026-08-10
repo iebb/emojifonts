@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-03",
+  "generated": "2026-08-10",
   "repo": "iebb/emojifonts",
   "release": "https://github.com/iebb/emojifonts/releases/latest",
   "fonts": [
@@ -117,7 +117,7 @@
       "upstream": "https://github.com/hfg-gmuend/openmoji",
       "emoji_version": "18.0",
       "coverage_pct": 100,
-      "updated": "2026-08-03",
+      "updated": "2026-08-10",
       "formats": {
         "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/openmoji.ttf",
         "colrv0": "https://github.com/iebb/emojifonts/releases/download/latest/openmoji-colrv0.ttf",
