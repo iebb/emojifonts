@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-24",
+  "generated": "2026-08-31",
   "repo": "iebb/emojifonts",
   "release": "https://github.com/iebb/emojifonts/releases/latest",
   "fonts": [
@@ -86,7 +86,7 @@
       "upstream": "https://github.com/microsoft/fluentui-emoji",
       "emoji_version": "15.0",
       "coverage_pct": 97,
-      "updated": "2026-07-20",
+      "updated": "2026-08-31",
       "formats": {
         "glyf": "https://github.com/iebb/emojifonts/releases/download/latest/fluent-mono.ttf"
       }

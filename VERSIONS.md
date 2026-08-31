@@ -11,7 +11,7 @@ coverage of all standard emoji. Regenerated automatically on each build.
 | `blobmoji` | Blobmoji (Android blobs) | Emoji 15.0 | 98% | 2026-07-20 |
 | `fluent` | Microsoft Fluent 3D | Emoji 15.0 | 98% | 2026-07-20 |
 | `fluent-flat` | Microsoft Fluent Flat | Emoji 15.0 | 98% | 2026-07-20 |
-| `fluent-mono` | Microsoft Fluent (monochrome) | Emoji 15.0 | 97% | 2026-07-20 |
+| `fluent-mono` | Microsoft Fluent (monochrome) | Emoji 15.0 | 97% | 2026-08-31 |
 | `twemoji` | Twemoji (jdecked) | Emoji 17.0 | 99% | 2026-07-20 |
 | `openmoji` | OpenMoji | Emoji 18.0 | 100% | 2026-08-17 |
 | `emojitwo` | EmojiTwo (open EmojiOne) | Emoji 4.0 | 78% | 2026-07-20 |
