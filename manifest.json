@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-05",
+  "generated": "2026-10-12",
   "repo": "iebb/emojifonts",
   "release": "https://github.com/iebb/emojifonts/releases/latest",
   "fonts": [
@@ -15,7 +15,6 @@
       "updated": "2026-07-20",
       "formats": {
         "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/noto.ttf",
-        "svginot": "https://github.com/iebb/emojifonts/releases/download/latest/noto-svginot.ttf",
         "ttc": "https://github.com/iebb/emojifonts/releases/download/latest/noto.ttc"
       }
     },
@@ -29,9 +28,7 @@
       "emoji_version": "15.0",
       "coverage_pct": 98,
       "updated": "2026-07-20",
-      "formats": {
-        "glyf": "https://github.com/iebb/emojifonts/releases/download/latest/noto-mono.ttf"
-      }
+      "formats": {}
     },
     {
       "key": "blobmoji",
@@ -44,7 +41,6 @@
       "coverage_pct": 98,
       "updated": "2026-07-20",
       "formats": {
-        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/blobmoji.ttf",
         "ttc": "https://github.com/iebb/emojifonts/releases/download/latest/blobmoji.ttc"
       }
     },
@@ -59,7 +55,6 @@
       "coverage_pct": 98,
       "updated": "2026-07-20",
       "formats": {
-        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/fluent.ttf",
         "ttc": "https://github.com/iebb/emojifonts/releases/download/latest/fluent.ttc"
       }
     },
@@ -73,9 +68,7 @@
       "emoji_version": "15.0",
       "coverage_pct": 98,
       "updated": "2026-07-20",
-      "formats": {
-        "svginot": "https://github.com/iebb/emojifonts/releases/download/latest/fluent-flat.ttf"
-      }
+      "formats": {}
     },
     {
       "key": "fluent-mono",
@@ -119,9 +112,7 @@
       "coverage_pct": 100,
       "updated": "2026-08-17",
       "formats": {
-        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/openmoji.ttf",
         "colrv0": "https://github.com/iebb/emojifonts/releases/download/latest/openmoji-colrv0.ttf",
-        "svginot": "https://github.com/iebb/emojifonts/releases/download/latest/openmoji-svginot.ttf",
         "ttc": "https://github.com/iebb/emojifonts/releases/download/latest/openmoji.ttc"
       }
     },
