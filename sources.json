@@ -6,8 +6,8 @@
         "builder": "cbdt_sbix",
         "label": "Google Noto Color Emoji",
         "license": "Apache-2.0 / OFL-1.1",
-        "cbdt": "https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf",
-        "svg": {"branch": "main", "dir": "svg", "naming": "noto"}
+        "cbdt": "https://github.com/googlefonts/noto-emoji/raw/main/2D/fonts/NotoColorEmoji.ttf",
+        "svg": {"branch": "main", "dir": "2D/svg", "naming": "noto"}
       }
     }
   },
