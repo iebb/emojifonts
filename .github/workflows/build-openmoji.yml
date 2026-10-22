@@ -2,7 +2,7 @@ name: openmoji
 
 on:
   schedule:
-    - cron: "40 5 * * 1"        # Mondays — rebuilds only if openmoji's upstream changed
+    - cron: "40 5 * * *"        # Daily — rebuilds only if openmoji's upstream changed
   workflow_dispatch:
     inputs:
       force:

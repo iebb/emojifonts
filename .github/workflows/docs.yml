@@ -2,11 +2,14 @@ name: docs (VERSIONS.md + manifest.json)
 
 # Single writer of the generated docs — VERSIONS.md and manifest.json — rebuilt
 # from the per-action versions/*.json and the actual `latest` release assets.
-# Per-action builds trigger this after they commit; concurrency serializes it.
+# Successful per-action/TTC workflows trigger this; concurrency serializes it.
 on:
   workflow_dispatch:
   schedule:
     - cron: "30 7 * * 1"   # Mondays, after the staggered per-action builds
+  workflow_run:
+    workflows: [noto, noto-mono, twemoji, openmoji, emojitwo, blobmoji, tossface, fluent, fluent-mono, "ttc (macOS system fonts)"]
+    types: [completed]
 
 permissions:
   contents: write
@@ -17,6 +20,7 @@ concurrency:
 
 jobs:
   render:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

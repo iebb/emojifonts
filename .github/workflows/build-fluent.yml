@@ -2,7 +2,7 @@ name: fluent
 
 on:
   schedule:
-    - cron: "24 5 * * 1"        # Mondays — rebuilds only if fluent's upstream changed
+    - cron: "24 5 * * *"        # Daily — rebuilds only if fluent's upstream changed
   workflow_dispatch:
     inputs:
       force:

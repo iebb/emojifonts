@@ -2,7 +2,7 @@ name: fluent-mono
 
 on:
   schedule:
-    - cron: "36 5 * * 1"        # Mondays — rebuilds only if the High-Contrast upstream changed
+    - cron: "36 5 * * *"        # Daily — rebuilds only if the High-Contrast upstream changed
   workflow_dispatch:
     inputs:
       force:

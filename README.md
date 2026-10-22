@@ -175,15 +175,25 @@ See **[VERSIONS.md](VERSIONS.md)** for each font's detected Unicode Emoji versio
 
 ## Automation
 
-- **Per-action weekly** (`build-<action>.yml`, staggered Mondays): each compares its
+- **Per-action daily** (`build-<action>.yml`, staggered at 05:00–06:00 UTC): each compares its
   upstream's latest commit to `versions/<action>.json` and **rebuilds only if that
   upstream changed**, publishing every font it produces to the rolling **`latest`**
   pre-release. Run any one individually (Actions → *<action>* → Run workflow). Shared
-  logic lives in the reusable [`_build.yml`](.github/workflows/_build.yml).
+  logic lives in the reusable [`_build.yml`](.github/workflows/_build.yml). Upstream
+  releases and artwork updates are picked up by the next daily check.
 - **Docs** ([`docs.yml`](.github/workflows/docs.yml)): single writer of `VERSIONS.md`,
-  triggered after each build (and weekly), regenerating it from `versions/*.json`.
-- **Monthly** ([`release.yml`](.github/workflows/release.yml), 1st): snapshots `latest`
-  into a dated `YYYY.MM` release.
+  triggered after successful font/TTC workflows (and weekly), regenerating it from
+  `versions/*.json`. Workflow completion events keep this automatic without an
+  extra token for dispatching workflows.
+- **Every 15 days** ([`release.yml`](.github/workflows/release.yml), 06:00 UTC,
+  anchored to 2026-01-01): snapshots `latest` into a dated `YYYY.MM.DD` release.
+  A daily check keeps the interval at 15 days across month boundaries; manual runs
+  can publish a snapshot on any date.
+
+Builds detect coverage using the latest stable [Unicode emoji test data](https://www.unicode.org/Public/emoji/latest/emoji-test.txt),
+with Emoji 18.0 as the fallback floor. Invalid downloads and older cached data are
+rejected. Each set tracks its upstream's current artwork, so Emoji 18 support lands
+as that upstream supplies it; see [VERSIONS.md](VERSIONS.md) for measured coverage.
 
 ## Build locally
 

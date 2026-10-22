@@ -2,7 +2,7 @@ name: emojitwo
 
 on:
   schedule:
-    - cron: "48 5 * * 1"        # Mondays — rebuilds only if emojitwo's upstream changed
+    - cron: "48 5 * * *"        # Daily — rebuilds only if emojitwo's upstream changed
   workflow_dispatch:
     inputs:
       force:

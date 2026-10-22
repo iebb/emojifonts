@@ -2,7 +2,7 @@ name: noto-mono
 
 on:
   schedule:
-    - cron: "8 5 * * 1"        # Mondays — rebuilds only if noto-mono's upstream changed
+    - cron: "8 5 * * *"        # Daily — rebuilds only if noto-mono's upstream changed
   workflow_dispatch:
     inputs:
       force:

@@ -1,15 +1,31 @@
-name: release (monthly)
+name: release (every 15 days)
 
 on:
   schedule:
-    - cron: "0 6 1 * *"        # 1st of each month, 06:00 UTC
+    - cron: "0 6 * * *"        # Daily check at 06:00 UTC; cadence job gates to 15 days
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
+  cadence:
+    runs-on: ubuntu-latest
+    outputs:
+      due: ${{ steps.check.outputs.due }}
+    steps:
+      - name: Check 15-day cadence (anchored to 2026-01-01 UTC)
+        id: check
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import datetime
+          today = datetime.datetime.now(datetime.timezone.utc).date()
+          due = (today - datetime.date(2026, 1, 1)).days % 15 == 0
+          print(f"due={str(due).lower()}")
+          PY
   release:
+    needs: cadence
+    if: github.event_name == 'workflow_dispatch' || needs.cadence.outputs.due == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,15 +36,15 @@ jobs:
           mkdir -p out
           gh release download latest --dir out --pattern "*.ttf"
           ls -la out
-      - name: Publish dated monthly release
+      - name: Publish dated release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="$(date +%Y.%m)"
+          TAG="$(date -u +%Y.%m.%d)"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" out/*.ttf --clobber
           else
             gh release create "$TAG" out/*.ttf \
               --title "Emoji fonts $TAG" \
-              --notes "Monthly snapshot of all built emoji fonts (macOS-renderable: sbix / COLRv0)."
+              --notes "15-day snapshot of all built emoji fonts (macOS-renderable: sbix / COLRv0 / OT-SVG / glyf). See VERSIONS.md for detected Emoji coverage; Emoji 18 support depends on each upstream."
           fi

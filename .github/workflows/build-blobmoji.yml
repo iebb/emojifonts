@@ -2,7 +2,7 @@ name: blobmoji
 
 on:
   schedule:
-    - cron: "16 5 * * 1"        # Mondays — rebuilds only if blobmoji's upstream changed
+    - cron: "16 5 * * *"        # Daily — rebuilds only if blobmoji's upstream changed
   workflow_dispatch:
     inputs:
       force:

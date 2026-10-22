@@ -40,12 +40,12 @@ DATA = ROOT / "data"
 VERSIONS_DIR = ROOT / "versions"
 ACTIONS = json.loads((ROOT / "sources.json").read_text())
 SKIN_TONES = {0x1F3FB, 0x1F3FC, 0x1F3FD, 0x1F3FE, 0x1F3FF}
-# emoji-test.txt is cumulative (all E-tags). Try the in-development draft first so we
-# pick up the newest versions (E17, E18, …); fall back to latest stable, then a floor.
+# emoji-test.txt is cumulative (all E-tags). Prefer the latest stable data, with
+# Emoji 18 as a floor; the draft is a last resort if the stable endpoints fail.
 EMOJI_TEST_URLS = [
-    "https://www.unicode.org/Public/draft/emoji/emoji-test.txt",   # next version — E18 today
-    "https://unicode.org/Public/emoji/latest/emoji-test.txt",      # latest stable — E17 today
-    "https://unicode.org/Public/emoji/16.0/emoji-test.txt",        # pinned floor
+    "https://www.unicode.org/Public/emoji/latest/emoji-test.txt",
+    "https://www.unicode.org/Public/18.0.0/emoji/emoji-test.txt",
+    "https://www.unicode.org/Public/draft/emoji/emoji-test.txt",
 ]
 REPO = "iebb/emojifonts"
 # tag-based URL: the rolling release is a *prerelease* tagged "latest"; the
@@ -89,21 +89,41 @@ def changed_actions(names=None):
 
 
 # ---- emoji-version detection ------------------------------------------------
+def valid_emoji_test(path):
+    """Reject stale data and successful HTTP responses containing HTML/error pages."""
+    try:
+        data = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
+        return False
+    version = re.search(r"^# Version: (\d+)\.(\d+)\s*$", data, re.MULTILINE)
+    return bool(
+        version and tuple(map(int, version.groups())) >= (18, 0)
+        and re.search(r"^[0-9A-F]+(?: [0-9A-F]+)*\s*; fully-qualified\s+# .+ E\d+\.\d+ ",
+                      data, re.MULTILINE)
+    )
+
+
 def ensure_emoji_test():
     p = DATA / "emoji-test.txt"
-    if not p.exists() or p.stat().st_size == 0:
+    if not valid_emoji_test(p):
         DATA.mkdir(parents=True, exist_ok=True)
-        for url in EMOJI_TEST_URLS:
-            subprocess.run(["curl", "-fsSL", "-o", str(p), url])
-            if p.exists() and p.stat().st_size > 0:
-                return p
-        raise RuntimeError("could not fetch emoji-test.txt from any known source")
+        candidate = p.with_suffix(".tmp")
+        try:
+            for url in EMOJI_TEST_URLS:
+                candidate.unlink(missing_ok=True)
+                result = subprocess.run(["curl", "-fsSL", "--retry", "3", "-o", str(candidate), url])
+                if result.returncode == 0 and valid_emoji_test(candidate):
+                    candidate.replace(p)
+                    return p
+        finally:
+            candidate.unlink(missing_ok=True)
+        raise RuntimeError("could not fetch valid Emoji 18+ emoji-test.txt from any known source")
     return p
 
 def emoji_version_index():
     """{version: [single-codepoint emoji]} from emoji-test.txt's E-tags."""
     idx = {}
-    for line in open(ensure_emoji_test(), encoding="utf-8"):
+    for line in ensure_emoji_test().read_text(encoding="utf-8").splitlines():
         if "; fully-qualified" not in line:
             continue
         field, _, comment = line.partition("#")
@@ -116,7 +136,8 @@ def emoji_version_index():
 
 def detect_emoji_version(font_path, idx):
     from fontTools.ttLib import TTFont
-    cmap = set(TTFont(str(font_path), lazy=True, fontNumber=0).getBestCmap().keys())
+    with TTFont(str(font_path), lazy=True, fontNumber=0) as font:
+        cmap = set(font.getBestCmap().keys())
     best = None
     for v in sorted(idx):
         if sum(c in cmap for c in idx[v]) / len(idx[v]) >= 0.8:

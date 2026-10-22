@@ -15,6 +15,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: build-${{ inputs.action }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -50,4 +54,3 @@ jobs:
           for i in 1 2 3 4 5; do
             git pull --rebase --autostash && git push && break || sleep $((RANDOM % 8 + 2))
           done
-          gh workflow run docs.yml || true     # regenerate VERSIONS.md (single writer)

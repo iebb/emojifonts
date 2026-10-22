@@ -2,7 +2,7 @@ name: twemoji
 
 on:
   schedule:
-    - cron: "32 5 * * 1"        # Mondays — rebuilds only if twemoji's upstream changed
+    - cron: "32 5 * * *"        # Daily — rebuilds only if twemoji's upstream changed
   workflow_dispatch:
     inputs:
       force:
