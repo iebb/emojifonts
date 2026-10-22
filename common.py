@@ -89,13 +89,17 @@ def changed_actions(names=None):
 
 
 # ---- emoji-version detection ------------------------------------------------
+def is_emoji_test(p):
+    # A retired draft URL redirects to an HTML directory listing, not test data.
+    return p.exists() and b"; fully-qualified" in p.read_bytes()
+
 def ensure_emoji_test():
     p = DATA / "emoji-test.txt"
-    if not p.exists() or p.stat().st_size == 0:
+    if not is_emoji_test(p):
         DATA.mkdir(parents=True, exist_ok=True)
         for url in EMOJI_TEST_URLS:
             subprocess.run(["curl", "-fsSL", "-o", str(p), url])
-            if p.exists() and p.stat().st_size > 0:
+            if is_emoji_test(p):
                 return p
         raise RuntimeError("could not fetch emoji-test.txt from any known source")
     return p
