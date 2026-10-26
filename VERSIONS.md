@@ -6,7 +6,7 @@ coverage of all standard emoji. Regenerated automatically on each build.
 
 | Font | Name | Emoji version | Coverage | Updated |
 |------|------|--------------:|---------:|---------|
-| `noto` | Google Noto Color Emoji | Emoji 17.0 | 99% | 2026-07-20 |
+| `noto` | Google Noto Color Emoji | Emoji 18.0 | 100% | 2026-10-22 |
 | `noto-mono` | Noto Emoji (monochrome glyph) | Emoji 15.0 | 98% | 2026-07-20 |
 | `blobmoji` | Blobmoji (Android blobs) | Emoji 15.0 | 98% | 2026-07-20 |
 | `fluent` | Microsoft Fluent 3D | Emoji 15.0 | 98% | 2026-07-20 |
