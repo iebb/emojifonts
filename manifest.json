@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-26",
+  "generated": "2026-11-02",
   "repo": "iebb/emojifonts",
   "release": "https://github.com/iebb/emojifonts/releases/latest",
   "fonts": [
@@ -12,7 +12,7 @@
       "upstream": "https://github.com/googlefonts/noto-emoji",
       "emoji_version": "18.0",
       "coverage_pct": 100,
-      "updated": "2026-10-22",
+      "updated": "2026-11-02",
       "formats": {
         "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/noto.ttf",
         "ttc": "https://github.com/iebb/emojifonts/releases/download/latest/noto.ttc"
@@ -110,9 +110,11 @@
       "upstream": "https://github.com/hfg-gmuend/openmoji",
       "emoji_version": "18.0",
       "coverage_pct": 100,
-      "updated": "2026-08-17",
+      "updated": "2026-11-02",
       "formats": {
+        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/openmoji.ttf",
         "colrv0": "https://github.com/iebb/emojifonts/releases/download/latest/openmoji-colrv0.ttf",
+        "svginot": "https://github.com/iebb/emojifonts/releases/download/latest/openmoji-svginot.ttf",
         "ttc": "https://github.com/iebb/emojifonts/releases/download/latest/openmoji.ttc"
       }
     },
