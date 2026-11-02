@@ -1,10 +1,10 @@
 {
-  "ref": "e20cbc2bbec1926686be9f9bee7d1d2cfa1fea0e",
+  "ref": "99701e07d3d1fe1bdbcdb14964547f0fd592966f",
   "fonts": {
     "noto": {
       "emoji_version": "18.0",
       "coverage_pct": 100,
-      "updated": "2026-10-22"
+      "updated": "2026-11-02"
     }
   }
 }
