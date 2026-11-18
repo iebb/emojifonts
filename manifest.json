@@ -45,6 +45,20 @@
       }
     },
     {
+      "key": "cursed",
+      "label": "Cursed Noto Emoji",
+      "license": "OFL-1.1 (Noto derivative)",
+      "kind": "color",
+      "action": "cursed",
+      "upstream": "https://github.com/HaNerW10/Noto-Cursed-Emojis",
+      "emoji_version": "15.0",
+      "coverage_pct": 98,
+      "updated": "2026-11-18",
+      "formats": {
+        "sbix": "https://github.com/iebb/emojifonts/releases/download/latest/cursed.ttf"
+      }
+    },
+    {
       "key": "fluent",
       "label": "Microsoft Fluent 3D",
       "license": "MIT",

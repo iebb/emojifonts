@@ -9,6 +9,7 @@ coverage of all standard emoji. Regenerated automatically on each build.
 | `noto` | Google Noto Color Emoji | Emoji 18.0 | 100% | 2026-11-02 |
 | `noto-mono` | Noto Emoji (monochrome glyph) | Emoji 15.0 | 98% | 2026-07-20 |
 | `blobmoji` | Blobmoji (Android blobs) | Emoji 15.0 | 98% | 2026-07-20 |
+| `cursed` | Cursed Noto Emoji | Emoji 15.0 | 98% | 2026-11-18 |
 | `fluent` | Microsoft Fluent 3D | Emoji 15.0 | 98% | 2026-07-20 |
 | `fluent-flat` | Microsoft Fluent Flat | Emoji 15.0 | 98% | 2026-07-20 |
 | `fluent-mono` | Microsoft Fluent (monochrome) | Emoji 15.0 | 97% | 2026-08-31 |

@@ -7,7 +7,11 @@
         "label": "Google Noto Color Emoji",
         "license": "Apache-2.0 / OFL-1.1",
         "cbdt": "https://github.com/googlefonts/noto-emoji/raw/main/2D/fonts/NotoColorEmoji.ttf",
-        "svg": {"branch": "main", "dir": "2D/svg", "naming": "noto"}
+        "svg": {
+          "branch": "main",
+          "dir": "2D/svg",
+          "naming": "noto"
+        }
       }
     }
   },
@@ -32,7 +36,22 @@
         "label": "Blobmoji (Android blobs)",
         "license": "OFL-1.1",
         "cbdt": "https://github.com/C1710/blobmoji/raw/main/fonts/Blobmoji.ttf",
-        "svg": {"branch": "main", "dir": "svg", "naming": "noto"}
+        "svg": {
+          "branch": "main",
+          "dir": "svg",
+          "naming": "noto"
+        }
+      }
+    }
+  },
+  "cursed": {
+    "upstream": "https://github.com/HaNerW10/Noto-Cursed-Emojis",
+    "fonts": {
+      "cursed": {
+        "builder": "cbdt_sbix",
+        "label": "Cursed Noto Emoji",
+        "license": "OFL-1.1 (Noto derivative)",
+        "cbdt": "https://github.com/HaNerW10/Noto-Cursed-Emojis/raw/main/NotoColorEmoji-CBDT.ttf"
       }
     }
   },
@@ -72,7 +91,11 @@
         "builder": "svg_color",
         "label": "Twemoji (jdecked)",
         "license": "CC-BY-4.0",
-        "svg": {"branch": "main", "dir": "assets/svg", "naming": "twemoji"}
+        "svg": {
+          "branch": "main",
+          "dir": "assets/svg",
+          "naming": "twemoji"
+        }
       }
     }
   },
@@ -97,7 +120,11 @@
         "builder": "svg_color",
         "label": "EmojiTwo (open EmojiOne)",
         "license": "CC-BY-4.0",
-        "svg": {"branch": "master", "dir": "svg", "naming": "twemoji"}
+        "svg": {
+          "branch": "master",
+          "dir": "svg",
+          "naming": "twemoji"
+        }
       }
     }
   },
