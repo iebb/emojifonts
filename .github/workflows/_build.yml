@@ -46,7 +46,7 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add versions/${{ inputs.action }}.json
-          git commit -m "sync ${{ inputs.action }} from upstream" || exit 0
+          git commit -m "sync ${{ inputs.action }} from upstream" || exit 0   # also fires when repairing missing release assets
           for i in 1 2 3 4 5; do
             git pull --rebase --autostash && git push && break || sleep $((RANDOM % 8 + 2))
           done

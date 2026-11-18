@@ -778,17 +778,55 @@ def render_docs():
     render_manifest()
 
 
+def required_assets(action):
+    """The .ttf assets `latest` must carry for [action] — the union of what its
+    builders always produce. Best-effort vector extras (COLRv0 / OT-SVG passes that
+    nanoemoji may drop on time budget or the glyph cap) are deliberately absent: the
+    sbix/mono primary `<font>.ttf` is what the swapper installs, so THAT is the
+    asset whose loss breaks installs. Used by CI to detect a wiped/partial release
+    (an unchanged upstream used to skip the build and leave the gap in place)."""
+    assets = []
+    for fk, fspec in ACTIONS[action]["fonts"].items():
+        assets.append(f"{fk}.ttf")
+    return assets
+
+
+def release_assets():
+    """File names present in the `latest` release (CI); empty set when gh is
+    unavailable or the release does not exist yet."""
+    try:
+        r = subprocess.run(["gh", "release", "view", "latest", "--json", "assets",
+                            "--jq", ".assets[].name"], capture_output=True, text=True, cwd=str(ROOT))
+        if r.returncode == 0 and r.stdout.strip():
+            return set(r.stdout.split())
+    except Exception:
+        pass
+    return set()
+
+
+def missing_release_assets(action):
+    """[required_assets] minus what `latest` actually carries."""
+    return [a for a in required_assets(action) if a not in release_assets()]
+
+
 def cli(action, argv):
     """Entry point for a per-font `build_<font>.py` script.
 
-      changed → print the action name iff its upstream changed (empty otherwise),
-                so CI can skip an unchanged font with `[ -z "$(… changed)" ]`.
+      changed → print the action name iff its upstream changed, OR any of its
+                required assets is missing from the `latest` release (empty
+                otherwise), so CI can skip an unchanged font with
+                `[ -z "$(… changed)" ]` without ever leaving a wiped release
+                unrepaired.
       build   → build the action's font(s) and refresh VERSIONS.md + manifest.json.
     """
     cmd = argv[0] if argv else "build"
     if cmd == "changed":
         if upstream_ref(action) != stored_ref(action):
             print(action)
+        else:
+            missing = missing_release_assets(action)
+            if missing:
+                print(f"{action} (missing from latest: {' '.join(sorted(missing))})")
         return 0
     if cmd == "build":
         try:
