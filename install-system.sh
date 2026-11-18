@@ -43,6 +43,7 @@ SETS=(
   "openmoji|openmoji.ttf|OpenMoji"
   "emojitwo|emojitwo.ttf|EmojiTwo"
   "tossface|tossface.ttf|Toss Face"
+  "cursed|cursed.ttf|Cursed Noto Emoji"
   "apple|@restore|Apple — restore the original"
 )
 
